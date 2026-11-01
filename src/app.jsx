@@ -43,7 +43,17 @@ function BoxTitle({eyebrow,title,subtitle,action}){return <div className="sectio
 const pad=n=>String(n).padStart(2,'0');
 function prettyDate(day){return 'NOV '+pad(day)+', 2026'}
 function iconForDomain(name){return name.includes('Applications')?'layers':name.includes('Model')?'sliders':name.includes('Agents')?'bolt':name.includes('Prompt')?'book':name.includes('Tools')?'terminal':name.includes('Security')?'shield':name.includes('Claude Code')?'code':'chart'}
-function readLearner(){let id=localStorage.getItem('claude-academy-learner');if(!id){id='learn_'+(crypto.randomUUID?crypto.randomUUID():Math.random().toString(36).slice(2));localStorage.setItem('claude-academy-learner',id);}return id;}
+// Some mobile in-app browsers block localStorage. Use a first-party cookie as a
+// best-effort fallback rather than crashing before React can mount.
+function readLearner(){
+ let id=null;
+ try{id=window.localStorage.getItem('claude-academy-learner')}catch{}
+ if(!id){try{const m=document.cookie.match(/(?:^|;\s*)claudepath_learner=(learn_[A-Za-z0-9_-]+)/);if(m)id=m[1]}catch{}}
+ if(!id)id='learn_'+((typeof crypto!=='undefined'&&typeof crypto.randomUUID==='function')?crypto.randomUUID():Math.random().toString(36).slice(2));
+ try{window.localStorage.setItem('claude-academy-learner',id)}catch{}
+ try{document.cookie='claudepath_learner='+encodeURIComponent(id)+'; Max-Age=2592000; Path=/; SameSite=Lax; Secure'}catch{}
+ return id;
+}
 function progressKey(learner){return 'claude-academy-backup-'+learner;}
 function readBackup(learner){try{return JSON.parse(localStorage.getItem(progressKey(learner))||'null')}catch{return null}}
 function saveBackup(learner,backup){if(backup){try{localStorage.setItem(progressKey(learner),JSON.stringify(backup))}catch{}}}
@@ -66,13 +76,13 @@ class App extends Component {
  submitQuiz=async(auto=false)=>{if(this.state.quizSubmitting||!this.state.quiz||this.state.quizResult)return;const {quiz,answers,quizStarted}=this.state;this.setState({quizSubmitting:true});try{const res=await api('/api/quiz/'+quiz.id+'/submit',{method:'POST',body:JSON.stringify({learner:this.learner,answers,elapsedSeconds:Math.round((Date.now()-quizStarted)/1000)})});saveBackup(this.learner,res.backup);this.setState({quizResult:res.result,summary:res.summary,quizSubmitting:false});this.toast(auto?'Time is up. Your attempt was graded.':'Your attempt is graded and saved.');window.scrollTo(0,0);}catch(e){this.setState({quizSubmitting:false});this.toast(e.message)}}
  runSim=async()=>{this.setState({simLoading:true});try{const result=await api('/api/simulate',{method:'POST',body:JSON.stringify({prompt:this.state.simPrompt,system:this.state.simSystem,max_tokens:this.state.simMax})});this.setState({simOutput:result,simLoading:false});}catch(e){this.setState({simLoading:false});this.toast(e.message)}}
  reset=async()=>{if(!window.confirm('Clear this local learner profile and all quiz attempts? This cannot be undone.'))return;try{const r=await api('/api/reset',{method:'POST',body:JSON.stringify({learner:this.learner})});saveBackup(this.learner,r.backup);this.setState({summary:r.summary,showReset:false});this.toast('Progress reset');this.nav('dashboard');}catch(e){this.toast(e.message)}}
- renderSidebar(){const{page,mobileOpen,summary}=this.state;return <><div className={'sidebar-backdrop '+(mobileOpen?'visible':'')} onClick={()=>this.setState({mobileOpen:false})}></div><aside className={'sidebar '+(mobileOpen?'mobile-open':'')}>
+ renderSidebar(){const{page,mobileOpen,summary}=this.state;return [<div key="backdrop" className={'sidebar-backdrop '+(mobileOpen?'visible':'')} onClick={()=>this.setState({mobileOpen:false})}></div>,<aside key="sidebar" className={'sidebar '+(mobileOpen?'mobile-open':'')}>
   <div className="brand" onClick={()=>this.nav('dashboard')}><div className="brand-symbol"><span className="brand-spark">✳</span></div><div><strong>claude<span className="brand-accent">path</span></strong><small>DEVELOPER ACADEMY</small></div></div>
   <div className="sidebar-block-label">YOUR WORKSPACE</div><div className="side-nav">{sideLinks.map(([id,ico,label])=><button key={id} className={'side-link '+((page===id||(page==='lesson'&&id==='path')||(page==='quiz'&&id==='assessments'))?'active':'')} onClick={()=>this.nav(id)}><Icon name={ico} size={18}/><span>{label}</span>{(id==='assessments')&&<i className="nav-dot"/>}</button>)}</div>
   <div className="sidebar-grow"/>
   <div className="sidebar-challenge"><div className="sidebar-challenge-top"><Icon name="spark" size={16}/> LEARNING MODE</div><strong>One day at a time.</strong><p>Short lessons. Real practice. Confidence that compounds.</p><div className="mini-bar"><span style={{width:`${(summary?summary.completedDays:0)/21*100}%`}}/></div><small>{summary?summary.completedDays:0} / 21 days mastered</small></div>
   <div className="side-profile"><div className="avatar">S</div><div><strong>Study account</strong><small>Local progress profile</small></div><Icon name="shield" size={15}/></div>
- </aside></>}
+ </aside>] }
  renderHeader(){const names={dashboard:['Your learning dashboard','Your journey · Nov 1–21, 2026'],path:['Your learning path','21 focused sessions, one clear destination'],lesson:['Lesson workspace','Read, practise, then prove you understand'],notes:['Knowledge library','Every important concept, in one place'],assessments:['Exam practice centre','Daily checks, weekly mocks and final assessment'],progress:['Your progress report','Real evidence, not just a completion badge'],playground:['No-key API playground','Experience request and response shapes without a paid API'],quiz:['Assessment session','Focus. Reason. Review. Improve.']};const [name,desc]=names[this.state.page]||names.dashboard;return <header className="topbar"><div className="topbar-left"><button className="mobile-toggle" onClick={()=>this.setState(s=>({mobileOpen:!s.mobileOpen}))}><Icon name="menu"/></button><div><div className="topbar-title">{name}</div><div className="topbar-sub">{desc}</div></div></div><div className="topbar-right"><div className="topbar-pill"><span className="online-dot"/> 100% API-key free</div><div className="topbar-avatar">S</div></div></header>}
  renderDashboard(){const {summary,lessons}=this.state;const done=summary.completedDays;const current=Math.min(21,Math.max(1,done+1));const lesson=lessons[current-1];const week=Math.ceil(current/7);const overall=done/21*100;const recommended=lessons.filter(x=>x.day>=current).slice(0,3);return <div className="page-content">
   <div className="welcome-row"><span><span className="tiny-sun">✹</span> YOUR 21-DAY LEARNING JOURNEY</span><Chip tone="peach">NOV 01 — NOV 21, 2026</Chip></div>

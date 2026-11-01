@@ -89,3 +89,15 @@ test('HTTP API serves a lesson and grades a daily quiz',async()=>{
   const pathAttack=await fetch(origin+'/../server/index.cjs');assert.notEqual(pathAttack.status,200);
  }finally{await new Promise(r=>server.close(r));}
 });
+
+test('mobile startup uses React 16-compatible structure and tolerates restricted storage',()=>{
+ const js=fs.readFileSync(path.join(__dirname,'../public/app.js'),'utf8');
+ const jsx=fs.readFileSync(path.join(__dirname,'../src/app.jsx'),'utf8');
+ const html=fs.readFileSync(path.join(__dirname,'../public/index.html'),'utf8');
+ // The vendored React runtime is v16.0, which has no React.Fragment.
+ assert.doesNotMatch(js,/React\.Fragment/);
+ assert.doesNotMatch(jsx,/<><div className=\{'sidebar-backdrop/);
+ assert.match(js,/localStorage\.getItem/);
+ assert.match(js,/claudepath_learner/);
+ assert.match(html,/app\.js\?v=mobilefix-2/);
+});

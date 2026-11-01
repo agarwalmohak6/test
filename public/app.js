@@ -48,10 +48,34 @@ function BoxTitle({ eyebrow, title, subtitle, action }) { return React.createEle
 const pad = n => String(n).padStart(2, '0');
 function prettyDate(day) { return 'NOV ' + pad(day) + ', 2026'; }
 function iconForDomain(name) { return name.includes('Applications') ? 'layers' : name.includes('Model') ? 'sliders' : name.includes('Agents') ? 'bolt' : name.includes('Prompt') ? 'book' : name.includes('Tools') ? 'terminal' : name.includes('Security') ? 'shield' : name.includes('Claude Code') ? 'code' : 'chart'; }
-function readLearner() { let id = localStorage.getItem('claude-academy-learner'); if (!id) {
-    id = 'learn_' + (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2));
-    localStorage.setItem('claude-academy-learner', id);
-} return id; }
+// Some mobile in-app browsers block localStorage. Use a first-party cookie as a
+// best-effort fallback rather than crashing before React can mount.
+function readLearner() {
+    let id = null;
+    try {
+        id = window.localStorage.getItem('claude-academy-learner');
+    }
+    catch (_a) { }
+    if (!id) {
+        try {
+            const m = document.cookie.match(/(?:^|;\s*)claudepath_learner=(learn_[A-Za-z0-9_-]+)/);
+            if (m)
+                id = m[1];
+        }
+        catch (_b) { }
+    }
+    if (!id)
+        id = 'learn_' + ((typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') ? crypto.randomUUID() : Math.random().toString(36).slice(2));
+    try {
+        window.localStorage.setItem('claude-academy-learner', id);
+    }
+    catch (_c) { }
+    try {
+        document.cookie = 'claudepath_learner=' + encodeURIComponent(id) + '; Max-Age=2592000; Path=/; SameSite=Lax; Secure';
+    }
+    catch (_d) { }
+    return id;
+}
 function progressKey(learner) { return 'claude-academy-backup-' + learner; }
 function readBackup(learner) { try {
     return JSON.parse(localStorage.getItem(progressKey(learner)) || 'null');
@@ -172,9 +196,7 @@ class App extends Component {
     componentWillUnmount() { clearInterval(this.ticker); clearTimeout(this.toastTimer); window.removeEventListener('hashchange', this.handleHash); }
     renderSidebar() {
         const { page, mobileOpen, summary } = this.state;
-        return React.createElement(React.Fragment, null,
-            React.createElement("div", { className: 'sidebar-backdrop ' + (mobileOpen ? 'visible' : ''), onClick: () => this.setState({ mobileOpen: false }) }),
-            React.createElement("aside", { className: 'sidebar ' + (mobileOpen ? 'mobile-open' : '') },
+        return [React.createElement("div", { key: "backdrop", className: 'sidebar-backdrop ' + (mobileOpen ? 'visible' : ''), onClick: () => this.setState({ mobileOpen: false }) }), React.createElement("aside", { key: "sidebar", className: 'sidebar ' + (mobileOpen ? 'mobile-open' : '') },
                 React.createElement("div", { className: "brand", onClick: () => this.nav('dashboard') },
                     React.createElement("div", { className: "brand-symbol" },
                         React.createElement("span", { className: "brand-spark" }, "\u2733")),
@@ -205,7 +227,7 @@ class App extends Component {
                     React.createElement("div", null,
                         React.createElement("strong", null, "Study account"),
                         React.createElement("small", null, "Local progress profile")),
-                    React.createElement(Icon, { name: "shield", size: 15 }))));
+                    React.createElement(Icon, { name: "shield", size: 15 })))];
     }
     renderHeader() { const names = { dashboard: ['Your learning dashboard', 'Your journey · Nov 1–21, 2026'], path: ['Your learning path', '21 focused sessions, one clear destination'], lesson: ['Lesson workspace', 'Read, practise, then prove you understand'], notes: ['Knowledge library', 'Every important concept, in one place'], assessments: ['Exam practice centre', 'Daily checks, weekly mocks and final assessment'], progress: ['Your progress report', 'Real evidence, not just a completion badge'], playground: ['No-key API playground', 'Experience request and response shapes without a paid API'], quiz: ['Assessment session', 'Focus. Reason. Review. Improve.'] }; const [name, desc] = names[this.state.page] || names.dashboard; return React.createElement("header", { className: "topbar" },
         React.createElement("div", { className: "topbar-left" },

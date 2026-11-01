@@ -4,6 +4,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const {URL}=require('node:url');
 const core=require('./core.cjs');
+const playground=require('./playground.cjs');
 const root=path.resolve(__dirname,'..','public');
 const dataDir=path.resolve(__dirname,'data');
 const storeFile=path.join(dataDir,'progress.json');
@@ -56,11 +57,32 @@ async function handler(req,res){try{const url=new URL(req.url,'http://localhost'
  const match=route.match(/^\/api\/quiz\/((?:day(?:[1-9]|1\d|2[01]))|week[123]|final)(\/submit)?$/);
  if(match){const id=match[1];if(req.method==='GET'&&!match[2]){const learner=url.searchParams.get('learner');userFor(learner);return json(res,200,core.publicQuiz(id,learner));}
  if(req.method==='POST'&&match[2]){const b=await bodyOf(req);const user=userFor(b.learner);if(!b.answers||typeof b.answers!=='object'||Array.isArray(b.answers))return json(res,400,{error:'Invalid answers'});const result=core.grade(id,b.learner,b.answers,b.elapsedSeconds);user.attempts.push(result);user.attempts=user.attempts.slice(-300);persist();return json(res,200,{result,summary:core.getSummary(user),backup:exportProgress(user)});}}
+ if(route==='/api/playground/scenarios'&&req.method==='GET')return json(res,200,{scenarios:playground.SCENARIOS,tools:playground.TOOLS,simulation:true});
+ if(route==='/api/playground/tool'&&req.method==='POST'){const b=await bodyOf(req);return json(res,200,{simulation:true,tool_result:playground.runTool(b.name,b.input),warning:'Local fixture output, not an actual MCP or external service call.'});}
+ if(route==='/api/playground/run'&&req.method==='POST'){
+  const b=await bodyOf(req);const result=playground.simulate(b);
+  await playground.wait(b.scenario==='timeout'?1200:result.metrics.simulated_model_delay_ms);
+  return json(res,200,result);
+ }
+ if(route==='/api/playground/stream'&&req.method==='POST'){
+  const b=await bodyOf(req),result=playground.simulate({...b,stream:true});
+  res.writeHead(200,{'Content-Type':'text/event-stream; charset=utf-8','Cache-Control':'no-cache, no-transform','Connection':'keep-alive','X-Accel-Buffering':'no','X-Content-Type-Options':'nosniff'});
+  res.flushHeaders?.();
+  let closed=false;res.on('close',()=>{closed=true;});
+  for(const e of playground.eventStream(result)){
+   if(closed)break;
+   res.write('event: '+e.type+'\ndata: '+JSON.stringify(e)+'\n\n');
+   if(e.type==='content_block_delta')await playground.wait(45);
+   else await playground.wait(8);
+  }
+  if(!closed){res.write('event: simulation_summary\ndata: '+JSON.stringify({type:'simulation_summary',result})+'\n\n');res.end();}
+  return;
+ }
  if(route==='/api/simulate'&&req.method==='POST'){const b=await bodyOf(req);return json(res,200,core.mockResponse(b));}
  if(route==='/api/reset'&&req.method==='POST'){const b=await bodyOf(req);userFor(b.learner);store[b.learner]=core.emptyUser();persist();return json(res,200,{summary:core.getSummary(store[b.learner]),backup:exportProgress(store[b.learner])});}
  if(route.startsWith('/api/'))return json(res,404,{error:'Unknown API route'});
  if(req.method==='GET'||req.method==='HEAD')return sendStatic(req,res,url);
  return json(res,405,{error:'Method not allowed'});
- }catch(err){if(!res.headersSent)json(res,err.status||500,{error:err.status?err.message:'Internal server error'});}}
+ }catch(err){if(!res.headersSent)json(res,err.status||500,err.payload||{error:err.status?err.message:'Internal server error'});}}
 if(require.main===module){http.createServer(handler).listen(port,'0.0.0.0',()=>console.log(`Claude Cert Academy running at http://localhost:${port} (no API key needed)`));}
 module.exports={handler};

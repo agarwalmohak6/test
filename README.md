@@ -29,6 +29,27 @@ For frontend source editing, run `npm install` (TypeScript is an optional build-
 - **Calendar export** in `public/study-calendar.ics` (21 daily lessons, three weekly mocks, final assessment).
 - **No Anthropic API key required**. The playground uses deterministic simulated responses. MCP labs link to free local tools/Inspector.
 
+## Interactive Messages API Lab (v2)
+
+Open **API playground** in the sidebar. This is an executable training simulator, not a live Claude endpoint:
+
+- **18 guided scenarios**: API request basics, system vs user roles, multi-turn history, structured JSON, tool use, MCP lookup fixture, SSE streaming, output limits, stop sequences, prompt caching demonstration, model selection, HTTP 429 and 529 retries, timeout/cancellation, malformed request (400), prompt-injection handling, refusal shapes, and context budgets.
+- Edit system and user messages, mock model, temperature, stop sequences, maximum output tokens, timeout, and retry policy.
+- **Real timing measurement**: elapsed wall time, time to first byte, and time to first streamed text delta (when streaming) measured by the browser. Fixture delays are **artificial**, not live model benchmarks.
+- **Estimated token counts**: explicitly prefixed with `~`. They are rough character estimates; response `usage.input_tokens`, `usage.output_tokens`, and cache usage values deliberately remain `null`, since no Anthropic tokenizer or inference runs. The simulator **cannot** compute real billed usage or exact model throughput.
+- **Guided JSON inspector**: hover or focus `?` for field explanations. Mobile users can tap focusable help markers. View raw request/response JSON, SSE events, HTTP attempts, and tool loop traces, or export a JSON record.
+- **Real local HTTP mechanics**: SSE event streams over HTTP, bounded retry for simulated 429/529 responses, and a local fixture tool execution followed by a tool_result continuation. Nothing is sent to Anthropic.
+- This is **not** an unrestricted chatbot. Unknown prompts receive clearly labeled generic educational explanations rather than hallucinated Claude responses.
+
+### API routes (training only)
+
+`GET /api/playground/scenarios` · `POST /api/playground/run` · `POST /api/playground/stream` · `POST /api/playground/tool`.
+
+For real inference without a paid Anthropic key, run a local model on your own computer (for example, Ollama) and compare outputs separately; it is **not Claude**, and isn't offered by this hosted demo. Don't put API credentials into this public playground.
+- **18 interactive API lab scenarios**: multi-turn history; system and user instructions; structured JSON; client tools and MCP-style fixtures; SSE streaming; output limits and stop sequences; local cache demonstration; mock model-selection delays; HTTP 429/529 with bounded retries; cancellation/timeouts; validation and context-size errors; prompt injection and refusal handling.
+- **Editable request inspector + developer field guide**: inspect request, response, errors, stream events and tool-result history as JSON. On desktop hover or keyboard-focus the `?` beside fields for detailed explanations; on mobile tap them.
+- **Timing and token education**: real browser wall-clock duration, first HTTP bytes, first streamed text and retry timings are displayed alongside **estimated** input/output tokens. No real Anthropic request is sent, so actual `usage.input_tokens`, `usage.output_tokens`, model latency and billing **cannot** be measured. The estimates use a rough text-length heuristic and should never be used for billing or exact context limits.
+
 ## Mastery and readiness policy
 
 A day counts as **mastered** when its notes and lab are checked off **and** the best daily quiz score is **at least 75%**.
@@ -111,3 +132,11 @@ Daily lesson reading links point to official documentation and references, inclu
 - No live hosted URL is provided by this source repository; start locally or deploy to an appropriate Node.js host.
 
 Built to make daily study measurable and enjoyable, while remaining upfront about what free simulation can—and cannot—prove.
+
+## Interactive Messages API learning lab
+
+Open **API playground** from the sidebar. It contains **18 local, deterministic exercises**, rather than only three fixed example prompts. You can edit the request and system instruction, select a mock model (different artificial delays), change `max_tokens`, temperature and stop sequences, add stateless multi-turn context, and practise structured output, client tool calls, an MCP-style lookup, SSE streaming, cache concepts, 429/529 retries, cancellation, context limits and security-handling patterns.
+
+The Node.js simulator exposes `/api/playground/scenarios`, `/api/playground/run`, `/api/playground/stream`, and `/api/playground/tool`. A guided JSON inspector explains individual request and response fields on hover or keyboard focus. The SSE timeline displays real HTTP chunks containing **scripted** content, and the tool loop runs local fixtures only. Downloading a trace exports the request, response, events and timings for study.
+
+**Important:** Claude is **not** called. Browser elapsed time and response-start measurements are real for *this app*, but model delays are intentionally artificial and **not** Anthropic inference benchmarks. Token values prefixed with `~` are coarse character-derived estimates; official `usage.input_tokens`, `usage.output_tokens` and prompt-cache counts are returned as `null`. Actual tokenizer counts, inference quality and billing cannot be demonstrated without Claude API access. All 21 lessons, quizzes, and progress tools continue to work without an API key.

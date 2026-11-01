@@ -56,6 +56,7 @@ test('mock simulator reports simulation and does not fake usage values',()=>{
 test('React frontend parses and all main views create elements',()=>{
  const React=require('../public/vendor/react.production.min.js');let rootElement=null;const memory=new Map();const sandbox={React,window:{React,addEventListener(){},removeEventListener(){},scrollTo(){},confirm(){return false;}},ReactDOM:{render(el){rootElement=el;}},document:{getElementById(){return {}}},localStorage:{getItem(k){return memory.get(k)||null;},setItem(k,v){memory.set(k,v);}},crypto:{randomUUID(){return 'test-1234567890'}},setInterval(){return 1},clearInterval(){},setTimeout(){return 1},clearTimeout(){},location:{hash:'',search:''},history:{replaceState(){}},fetch:async()=>{},console};
  sandbox.window.localStorage=sandbox.localStorage;
+ vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../public/playground.js'),'utf8'),sandbox,{timeout:2000});
  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../public/app.js'),'utf8'),sandbox,{timeout:2000});
  assert.ok(rootElement);
  const app=new rootElement.type({});const sum=core.getSummary(core.emptyUser());app.state={...app.state,lessons:core.curriculum,summary:sum,loading:false};
@@ -99,7 +100,7 @@ test('mobile startup uses React 16-compatible structure and tolerates restricted
  assert.doesNotMatch(jsx,/<><div className=\{'sidebar-backdrop/);
  assert.match(js,/localStorage\.getItem/);
  assert.match(js,/claudepath_learner/);
- assert.match(html,/app\.js\?v=layoutfix-3/);
+ assert.match(html,/playground\.js\?v=lab-v3/);
 });
 
 
@@ -116,4 +117,37 @@ test('responsive navigation, collapsible notes and quiz scrolling are included',
  assert.match(css,/\.notes-expand \{ display:flex;/);
  assert.match(css,/\.question-dots button \{ height:44px;/);
  assert.match(css,/safe-area-inset-bottom/);
+});
+
+const lab=require('../server/playground.cjs');
+test('API lab supports 18 documented scenarios and honest usage',()=>{
+ assert.equal(lab.SCENARIOS.length,18);const input={scenario:'basics',prompt:'Explain tokens',max_tokens:256};const x=lab.simulate(input);
+ assert.equal(x.simulation,true);assert.equal(x.authenticClaudeUsage,false);assert.equal(x.response.usage.input_tokens,null);
+ assert.ok(x.metrics.estimated_input_tokens>0);assert.ok(x.metrics.estimated_output_tokens>0);
+ assert.match(x.metrics.token_estimation_method,/NOT Anthropic tokenizer/);
+});
+test('tool loop requires app execution and includes a tool result in the next request',()=>{
+ const call=lab.simulate({scenario:'tools',prompt:'Look up ticket T-42'});assert.equal(call.response.stop_reason,'tool_use');
+ const tool=call.response.content[0];assert.equal(tool.name,'lookup_ticket');
+ const ticket=lab.runTool(tool.name,tool.input);assert.equal(ticket.status,'In progress');
+ const history=[...call.request.messages,{role:'assistant',content:[tool]},{role:'user',content:[{type:'tool_result',tool_use_id:tool.id,content:JSON.stringify(ticket)}]}];
+ const next=lab.simulate({scenario:'tools',prompt:'Look up ticket T-42',history,continued:true,toolResult:ticket});
+ assert.equal(next.response.stop_reason,'end_turn');assert.equal(next.request.messages.length,3);
+ assert.equal(next.request.messages[2].content[0].tool_use_id,tool.id);
+});
+test('stream fixtures include real event progression and error policies',()=>{
+ const x=lab.simulate({scenario:'stream',prompt:'Explain streaming',stream:true});
+ const events=lab.eventStream(x);assert.equal(events[0].type,'message_start');assert.equal(events.at(-1).type,'message_stop');
+ assert.ok(events.some(e=>e.type==='content_block_delta'));
+ assert.throws(()=>lab.simulate({scenario:'rate_limit',prompt:'Hello',attempt:1}),e=>e.status===429);
+ assert.equal(lab.simulate({scenario:'rate_limit',prompt:'Hello',attempt:2}).response.stop_reason,'end_turn');
+ assert.throws(()=>lab.simulate({scenario:'overload',prompt:'Hello',attempt:2}),e=>e.status===529);
+ assert.equal(lab.simulate({scenario:'overload',prompt:'Hello',attempt:3}).response.stop_reason,'end_turn');
+ assert.throws(()=>lab.simulate({scenario:'validation',prompt:'Hello'}),e=>e.status===400);
+});
+test('lab frontend has accessible tooltips, controls and responsive CSS',()=>{
+ const src=fs.readFileSync(path.join(__dirname,'../src/playground.jsx'),'utf8');
+ const css=fs.readFileSync(path.join(__dirname,'../public/playground.css'),'utf8');
+ assert.match(src,/onMouseEnter=\{e=>showFieldTip/);assert.match(src,/tool_result/);
+ assert.match(src,/Event timeline/);assert.match(src,/AbortController/);assert.match(css,/max-width:650px/);
 });

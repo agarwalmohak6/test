@@ -52,6 +52,19 @@ function readLearner() { let id = localStorage.getItem('claude-academy-learner')
     id = 'learn_' + (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2));
     localStorage.setItem('claude-academy-learner', id);
 } return id; }
+function progressKey(learner) { return 'claude-academy-backup-' + learner; }
+function readBackup(learner) { try {
+    return JSON.parse(localStorage.getItem(progressKey(learner)) || 'null');
+}
+catch (_a) {
+    return null;
+} }
+function saveBackup(learner, backup) { if (backup) {
+    try {
+        localStorage.setItem(progressKey(learner), JSON.stringify(backup));
+    }
+    catch (_a) { }
+} }
 async function api(url, options = {}) { const response = await fetch(url, { ...options, headers: { 'Content-Type': 'application/json', ...(options.headers || {}) } }); const data = await response.json(); if (!response.ok)
     throw new Error(data.error || `HTTP ${response.status}`); return data; }
 function Ring({ percent, size = 124, color = '#da815e', label }) { return React.createElement("div", { className: "progress-ring", style: { width: size, height: size, '--ring-color': color, '--ring-progress': `${Math.max(0, Math.min(100, percent))}%` } },
@@ -76,6 +89,16 @@ class App extends Component {
         } };
         this.toast = (value) => { clearTimeout(this.toastTimer); this.setState({ notice: value }); this.toastTimer = setTimeout(() => this.setState({ notice: '' }), 3800); };
         this.refresh = async () => { try {
+            const backup = readBackup(this.learner);
+            if (backup) {
+                try {
+                    const restored = await api('/api/restore', { method: 'POST', body: JSON.stringify({ learner: this.learner, backup }) });
+                    saveBackup(this.learner, restored.backup);
+                }
+                catch (err) {
+                    console.warn('Local backup could not be restored:', err.message);
+                }
+            }
             const data = await api('/api/bootstrap?learner=' + encodeURIComponent(this.learner));
             this.setState({ lessons: data.curriculum, summary: data.summary, loading: false });
         }
@@ -87,6 +110,7 @@ class App extends Component {
         this.goDay = (day) => { this.setState({ page: 'lesson', selectedDay: day, quiz: null, quizResult: null, mobileOpen: false }); history.replaceState({}, '', '#lesson-' + day); window.scrollTo(0, 0); };
         this.mark = async (day, field, value) => { try {
             const res = await api('/api/lesson', { method: 'POST', body: JSON.stringify({ learner: this.learner, day, field, value }) });
+            saveBackup(this.learner, res.backup);
             this.setState({ summary: res.summary });
             this.toast(value ? 'Progress saved' : 'Progress updated');
         }
@@ -106,6 +130,7 @@ class App extends Component {
         this.submitQuiz = async (auto = false) => { if (this.state.quizSubmitting || !this.state.quiz || this.state.quizResult)
             return; const { quiz, answers, quizStarted } = this.state; this.setState({ quizSubmitting: true }); try {
             const res = await api('/api/quiz/' + quiz.id + '/submit', { method: 'POST', body: JSON.stringify({ learner: this.learner, answers, elapsedSeconds: Math.round((Date.now() - quizStarted) / 1000) }) });
+            saveBackup(this.learner, res.backup);
             this.setState({ quizResult: res.result, summary: res.summary, quizSubmitting: false });
             this.toast(auto ? 'Time is up. Your attempt was graded.' : 'Your attempt is graded and saved.');
             window.scrollTo(0, 0);
@@ -125,6 +150,7 @@ class App extends Component {
         this.reset = async () => { if (!window.confirm('Clear this local learner profile and all quiz attempts? This cannot be undone.'))
             return; try {
             const r = await api('/api/reset', { method: 'POST', body: JSON.stringify({ learner: this.learner }) });
+            saveBackup(this.learner, r.backup);
             this.setState({ summary: r.summary, showReset: false });
             this.toast('Progress reset');
             this.nav('dashboard');
@@ -622,7 +648,7 @@ class App extends Component {
             React.createElement("div", { className: "danger-zone" },
                 React.createElement("div", null,
                     React.createElement("strong", null, "Local study profile"),
-                    React.createElement("p", null, "Progress belongs to this browser's anonymous learner ID and this local server. There is no account or cloud sync.")),
+                    React.createElement("p", null, "A browser-local backup keeps your progress on this device, even if free hosting resets its server. Clearing browser storage or changing devices can lose it. No login or cloud sync.")),
                 React.createElement("button", { onClick: this.reset },
                     React.createElement(Icon, { name: "refresh", size: 15 }),
                     " Reset progress")));

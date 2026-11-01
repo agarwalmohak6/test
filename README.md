@@ -71,7 +71,7 @@ tests/core.test.cjs           Unit, HTTP and React-render smoke tests
 scripts/build.cjs             Optional JSX rebuild
 ```
 
-The app stores one anonymous learner identifier in the browser's `localStorage`; the server persists that learner's progress in `server/data/progress.json`. It has **no password-based accounts, production-grade authentication, shared-device isolation or cloud sync**. For a public hosted website, implement proper account security and durable database storage first.
+The app stores one anonymous learner identifier in the browser's `localStorage`. The server temporarily persists progress in `server/data/progress.json` and returns a **compact progress backup** to the browser after each completed action. On reload, the browser sends the local backup to `/api/restore`, protecting same-browser progress from Render Free's ephemeral filesystem resets. Progress is **not synced across devices or browsers** and is lost if browser storage is cleared. It has **no password-based accounts or production-grade authentication**. Do not enter sensitive personal information. For a multi-user production website, replace the anonymous profile mechanism with authenticated users and a managed database.
 
 ## API routes
 
@@ -79,7 +79,8 @@ The app stores one anonymous learner identifier in the browser's `localStorage`;
 |---|---|
 | `GET /api/health` | Health + offline mode |
 | `GET /api/bootstrap?learner=<id>` | Curriculum and learner summary |
-| `POST /api/lesson` | Mark notes/lab review status |
+| `POST /api/lesson` | Mark notes/lab review status and return a portable backup |
+| `POST /api/restore` | Restore a validated browser-local progress backup |
 | `GET /api/quiz/:id?learner=<id>` | Questions with no answer keys (`day1`–`day21`, `week1`–`week3`, `final`) |
 | `POST /api/quiz/:id/submit` | Grade on the server; save attempt |
 | `POST /api/simulate` | Deterministic mock Messages-shaped response |
@@ -106,7 +107,7 @@ Daily lesson reading links point to official documentation and references, inclu
 
 - Mocked replies **do not** validate Claude's real outputs, current token usage, pricing or model quality.
 - The quizzes use a finite, visible-to-repository-author bank. Scores are for learning, not official proctoring; repeated attempts can become familiar.
-- The app is self-contained and suitable for a personal demo. Before public production use, upgrade React, add authentication and a database, protect against account enumeration and abuse, and configure deployment/hosting.
+- The app is suitable for a **public hobby demo** with browser-local progress backup. Before production use, upgrade React, add authentication and a database, and protect against account enumeration and abuse.
 - No live hosted URL is provided by this source repository; start locally or deploy to an appropriate Node.js host.
 
 Built to make daily study measurable and enjoyable, while remaining upfront about what free simulation can—and cannot—prove.

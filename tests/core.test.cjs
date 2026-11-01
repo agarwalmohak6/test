@@ -63,6 +63,19 @@ test('React frontend parses and all main views create elements',()=>{
   app.state.page=page;assert.ok(app.render(),`render failed: ${page}`);
  }
 });
+test('browser progress backup can restore after an API session reset',async()=>{
+ const server=http.createServer(handler);await new Promise(r=>server.listen(0,'127.0.0.1',r));
+ const origin='http://127.0.0.1:'+server.address().port,learner='learn_backup_'+Date.now();
+ const send=(path,body)=>fetch(origin+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json());
+ try{
+  const done=await send('/api/lesson',{learner,day:1,field:'reviewed',value:true});
+  assert.equal(done.backup.reviewed['1'],true);
+  await send('/api/reset',{learner});
+  let b=await (await fetch(origin+'/api/bootstrap?learner='+learner)).json();assert.equal(b.summary.dayStats[0].reviewed,false);
+  const restored=await send('/api/restore',{learner,backup:done.backup});assert.equal(restored.summary.dayStats[0].reviewed,true);
+  b=await (await fetch(origin+'/api/bootstrap?learner='+learner)).json();assert.equal(b.summary.dayStats[0].reviewed,true);
+ }finally{await new Promise(r=>server.close(r));}
+});
 test('HTTP API serves a lesson and grades a daily quiz',async()=>{
  const server=http.createServer(handler);await new Promise(r=>server.listen(0,'127.0.0.1',r));
  const origin='http://127.0.0.1:'+server.address().port;const learner='learn_http_'+Date.now();

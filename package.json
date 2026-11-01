@@ -1,0 +1,14 @@
+{
+  "name": "claude-cert-academy",
+  "version": "1.0.0",
+  "private": true,
+  "description": "No-key React and Node.js learning platform for a 21-day Claude Developer Foundations preparation plan.",
+  "scripts": {
+    "start": "node server/index.cjs",
+    "dev": "node --watch server/index.cjs",
+    "build": "node scripts/build.cjs",
+    "test": "node --test tests/*.test.cjs"
+  },
+  "devDependencies": {"typescript":"^5.9.3"},
+  "engines": {"node": ">=18"}
+}

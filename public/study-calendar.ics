@@ -1,0 +1,181 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//ClaudePath//21-Day Study Plan//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+BEGIN:VEVENT
+UID:claudepath-day-1@study.local
+DTSTART;VALUE=DATE:20261101
+DTEND;VALUE=DATE:20261102
+SUMMARY:ClaudePath Day 01 - Study + Daily Quiz
+DESCRIPTION:Read study notes\, complete a local hands-on lab\, and score 75 percent or higher on the daily quiz.
+END:VEVENT
+BEGIN:VEVENT
+UID:claudepath-day-2@study.local
+DTSTART;VALUE=DATE:20261102
+DTEND;VALUE=DATE:20261103
+SUMMARY:ClaudePath Day 02 - Study + Daily Quiz
+DESCRIPTION:Read study notes\, complete a local hands-on lab\, and score 75 percent or higher on the daily quiz.
+END:VEVENT
+BEGIN:VEVENT
+UID:claudepath-day-3@study.local
+DTSTART;VALUE=DATE:20261103
+DTEND;VALUE=DATE:20261104
+SUMMARY:ClaudePath Day 03 - Study + Daily Quiz
+DESCRIPTION:Read study notes\, complete a local hands-on lab\, and score 75 percent or higher on the daily quiz.
+END:VEVENT
+BEGIN:VEVENT
+UID:claudepath-day-4@study.local
+DTSTART;VALUE=DATE:20261104
+DTEND;VALUE=DATE:20261105
+SUMMARY:ClaudePath Day 04 - Study + Daily Quiz
+DESCRIPTION:Read study notes\, complete a local hands-on lab\, and score 75 percent or higher on the daily quiz.
+END:VEVENT
+BEGIN:VEVENT
+UID:claudepath-day-5@study.local
+DTSTART;VALUE=DATE:20261105
+DTEND;VALUE=DATE:20261106
+SUMMARY:ClaudePath Day 05 - Study + Daily Quiz
+DESCRIPTION:Read study notes\, complete a local hands-on lab\, and score 75 percent or higher on the daily quiz.
+END:VEVENT
+BEGIN:VEVENT
+UID:claudepath-day-6@study.local
+DTSTART;VALUE=DATE:20261106
+DTEND;VALUE=DATE:20261107
+SUMMARY:ClaudePath Day 06 - Study + Daily Quiz
+DESCRIPTION:Read study notes\, complete a local hands-on lab\, and score 75 percent or higher on the daily quiz.
+END:VEVENT
+BEGIN:VEVENT
+UID:claudepath-day-7@study.local
+DTSTART;VALUE=DATE:20261107
+DTEND;VALUE=DATE:20261108
+SUMMARY:ClaudePath Day 07 - Study + Daily Quiz
+DESCRIPTION:Read study notes\, complete a local hands-on lab\, and score 75 percent or higher on the daily quiz.
+END:VEVENT
+BEGIN:VEVENT
+UID:claudepath-day-8@study.local
+DTSTART;VALUE=DATE:20261108
+DTEND;VALUE=DATE:20261109
+SUMMARY:ClaudePath Day 08 - Study + Daily Quiz
+DESCRIPTION:Read study notes\, complete a local hands-on lab\, and score 75 percent or higher on the daily quiz.
+END:VEVENT
+BEGIN:VEVENT
+UID:claudepath-day-9@study.local
+DTSTART;VALUE=DATE:20261109
+DTEND;VALUE=DATE:20261110
+SUMMARY:ClaudePath Day 09 - Study + Daily Quiz
+DESCRIPTION:Read study notes\, complete a local hands-on lab\, and score 75 percent or higher on the daily quiz.
+END:VEVENT
+BEGIN:VEVENT
+UID:claudepath-day-10@study.local
+DTSTART;VALUE=DATE:20261110
+DTEND;VALUE=DATE:20261111
+SUMMARY:ClaudePath Day 10 - Study + Daily Quiz
+DESCRIPTION:Read study notes\, complete a local hands-on lab\, and score 75 percent or higher on the daily quiz.
+END:VEVENT
+BEGIN:VEVENT
+UID:claudepath-day-11@study.local
+DTSTART;VALUE=DATE:20261111
+DTEND;VALUE=DATE:20261112
+SUMMARY:ClaudePath Day 11 - Study + Daily Quiz
+DESCRIPTION:Read study notes\, complete a local hands-on lab\, and score 75 percent or higher on the daily quiz.
+END:VEVENT
+BEGIN:VEVENT
+UID:claudepath-day-12@study.local
+DTSTART;VALUE=DATE:20261112
+DTEND;VALUE=DATE:20261113
+SUMMARY:ClaudePath Day 12 - Study + Daily Quiz
+DESCRIPTION:Read study notes\, complete a local hands-on lab\, and score 75 percent or higher on the daily quiz.
+END:VEVENT
+BEGIN:VEVENT
+UID:claudepath-day-13@study.local
+DTSTART;VALUE=DATE:20261113
+DTEND;VALUE=DATE:20261114
+SUMMARY:ClaudePath Day 13 - Study + Daily Quiz
+DESCRIPTION:Read study notes\, complete a local hands-on lab\, and score 75 percent or higher on the daily quiz.
+END:VEVENT
+BEGIN:VEVENT
+UID:claudepath-day-14@study.local
+DTSTART;VALUE=DATE:20261114
+DTEND;VALUE=DATE:20261115
+SUMMARY:ClaudePath Day 14 - Study + Daily Quiz
+DESCRIPTION:Read study notes\, complete a local hands-on lab\, and score 75 percent or higher on the daily quiz.
+END:VEVENT
+BEGIN:VEVENT
+UID:claudepath-day-15@study.local
+DTSTART;VALUE=DATE:20261115
+DTEND;VALUE=DATE:20261116
+SUMMARY:ClaudePath Day 15 - Study + Daily Quiz
+DESCRIPTION:Read study notes\, complete a local hands-on lab\, and score 75 percent or higher on the daily quiz.
+END:VEVENT
+BEGIN:VEVENT
+UID:claudepath-day-16@study.local
+DTSTART;VALUE=DATE:20261116
+DTEND;VALUE=DATE:20261117
+SUMMARY:ClaudePath Day 16 - Study + Daily Quiz
+DESCRIPTION:Read study notes\, complete a local hands-on lab\, and score 75 percent or higher on the daily quiz.
+END:VEVENT
+BEGIN:VEVENT
+UID:claudepath-day-17@study.local
+DTSTART;VALUE=DATE:20261117
+DTEND;VALUE=DATE:20261118
+SUMMARY:ClaudePath Day 17 - Study + Daily Quiz
+DESCRIPTION:Read study notes\, complete a local hands-on lab\, and score 75 percent or higher on the daily quiz.
+END:VEVENT
+BEGIN:VEVENT
+UID:claudepath-day-18@study.local
+DTSTART;VALUE=DATE:20261118
+DTEND;VALUE=DATE:20261119
+SUMMARY:ClaudePath Day 18 - Study + Daily Quiz
+DESCRIPTION:Read study notes\, complete a local hands-on lab\, and score 75 percent or higher on the daily quiz.
+END:VEVENT
+BEGIN:VEVENT
+UID:claudepath-day-19@study.local
+DTSTART;VALUE=DATE:20261119
+DTEND;VALUE=DATE:20261120
+SUMMARY:ClaudePath Day 19 - Study + Daily Quiz
+DESCRIPTION:Read study notes\, complete a local hands-on lab\, and score 75 percent or higher on the daily quiz.
+END:VEVENT
+BEGIN:VEVENT
+UID:claudepath-day-20@study.local
+DTSTART;VALUE=DATE:20261120
+DTEND;VALUE=DATE:20261121
+SUMMARY:ClaudePath Day 20 - Study + Daily Quiz
+DESCRIPTION:Read study notes\, complete a local hands-on lab\, and score 75 percent or higher on the daily quiz.
+END:VEVENT
+BEGIN:VEVENT
+UID:claudepath-day-21@study.local
+DTSTART;VALUE=DATE:20261121
+DTEND;VALUE=DATE:20261122
+SUMMARY:ClaudePath Day 21 - Study + Daily Quiz
+DESCRIPTION:Read study notes\, complete a local hands-on lab\, and score 75 percent or higher on the daily quiz.
+END:VEVENT
+BEGIN:VEVENT
+UID:claudepath-week-1-mock@study.local
+DTSTART;VALUE=DATE:20261107
+DTEND;VALUE=DATE:20261108
+SUMMARY:ClaudePath Week 1 Timed Mock Exam
+DESCRIPTION:12-question 30-minute weekly mock. Target 75 percent or higher.
+END:VEVENT
+BEGIN:VEVENT
+UID:claudepath-week-2-mock@study.local
+DTSTART;VALUE=DATE:20261114
+DTEND;VALUE=DATE:20261115
+SUMMARY:ClaudePath Week 2 Timed Mock Exam
+DESCRIPTION:12-question 30-minute weekly mock. Target 75 percent or higher.
+END:VEVENT
+BEGIN:VEVENT
+UID:claudepath-week-3-mock@study.local
+DTSTART;VALUE=DATE:20261121
+DTEND;VALUE=DATE:20261122
+SUMMARY:ClaudePath Week 3 Timed Mock Exam
+DESCRIPTION:12-question 30-minute weekly mock. Target 75 percent or higher.
+END:VEVENT
+BEGIN:VEVENT
+UID:claudepath-final-exam@study.local
+DTSTART;VALUE=DATE:20261121
+DTEND;VALUE=DATE:20261122
+SUMMARY:ClaudePath Final Practice Assessment
+DESCRIPTION:36-question 90-minute comprehensive practice assessment. Review your per-domain readiness report.
+END:VEVENT
+END:VCALENDAR

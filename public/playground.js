@@ -116,8 +116,6 @@ class ClaudePathPlayground extends CL_R.Component {
                 err.data = d;
                 throw err;
             }
-            if (timing)
-                timing.firstByte = performance.now() - requestStart;
             if (!r.body || !r.body.getReader)
                 throw new Error('This browser does not support streaming fetch. Turn streaming off and retry.');
             const reader = r.body.getReader(), decoder = new TextDecoder();
@@ -189,7 +187,7 @@ class ClaudePathPlayground extends CL_R.Component {
                     try {
                         if (payload.stream) {
                             const streamed = await this.streamRun(body, ctrl.signal, p => { if (ownId === this.runId)
-                                this.setState(p); }, networkTiming);
+                                this.setState(p); });
                             result = streamed.result;
                             ev = streamed.events;
                             ttft = streamed.ttft;

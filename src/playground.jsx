@@ -75,7 +75,6 @@ class ClaudePathPlayground extends CL_R.Component{
  fetchJSON=async(url,payload,signal,timing)=>{const sent=performance.now();const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal});if(timing)timing.firstByteMs=performance.now()-sent;let d=await r.json();if(!r.ok){const e=new Error(d?.error?.message||d?.error||`HTTP ${r.status}`);e.httpStatus=r.status;e.data=d;throw e;}return d;}
  streamRun=async(payload,signal,progress)=>{
   const begin=performance.now();const r=await fetch('/api/playground/stream',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal});if(!r.ok){const d=await r.json();const err=new Error(d?.error?.message||`HTTP ${r.status}`);err.httpStatus=r.status;err.data=d;throw err;}
-  if(timing)timing.firstByte=performance.now()-requestStart;
   if(!r.body||!r.body.getReader)throw new Error('This browser does not support streaming fetch. Turn streaming off and retry.');
   const reader=r.body.getReader(),decoder=new TextDecoder();let buffer='',result=null,events=[],text='',ttft=null,firstByteMs=null;
   while(true){const part=await reader.read();if(part.done)break;if(firstByteMs===null)firstByteMs=performance.now()-begin;buffer+=decoder.decode(part.value,{stream:true});let split;while((split=buffer.indexOf('\n\n'))>=0){const raw=buffer.slice(0,split);buffer=buffer.slice(split+2);let eName='',dataLine='';for(const ln of raw.split('\n')){if(ln.startsWith('event: '))eName=ln.slice(7);if(ln.startsWith('data: '))dataLine=ln.slice(6)}if(!dataLine)continue;let data;try{data=JSON.parse(dataLine);}catch{continue;}if(eName==='simulation_summary'){result=data.result;continue;}events.push({name:eName,at:Math.round(performance.now()-begin),data});if(eName==='content_block_delta'&&data.delta?.text){text+=data.delta.text;if(ttft===null)ttft=performance.now()-begin;}progress({events:[...events],liveText:text,ttft});}}
@@ -91,7 +90,7 @@ class ClaudePathPlayground extends CL_R.Component{
     const t=performance.now();const body={...payload,attempt};let result=null,ev=[],ttft=null,firstByteMs=null;
     clearTimeout(this.deadline);this.deadline=setTimeout(()=>ctrl.abort(),Number(this.state.timeout));
     try{
-     if(payload.stream){const streamed=await this.streamRun(body,ctrl.signal,p=>{if(ownId===this.runId)this.setState(p)},networkTiming);result=streamed.result;ev=streamed.events;ttft=streamed.ttft;firstByteMs=streamed.firstByteMs;}
+     if(payload.stream){const streamed=await this.streamRun(body,ctrl.signal,p=>{if(ownId===this.runId)this.setState(p)});result=streamed.result;ev=streamed.events;ttft=streamed.ttft;firstByteMs=streamed.firstByteMs;}
      else{const timing={};result=await this.fetchJSON('/api/playground/run',body,ctrl.signal,timing);firstByteMs=timing.firstByteMs;}
      clearTimeout(this.deadline);if(ownId!==this.runId)return;
      const duration=performance.now()-t;attempts.push({attempt,status:200,elapsed:Math.round(duration)});

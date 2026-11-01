@@ -108,6 +108,12 @@ const sideLinks = [['dashboard', 'grid', 'Overview'], ['path', 'layers', 'Learni
 class App extends Component {
     constructor(props) {
         super(props);
+        this.scrollTop = () => { window.scrollTo({ top: 0, behavior: 'auto' }); };
+        this.jumpQuestion = (index) => { this.setState({ currentQ: index }, () => { if (window.matchMedia('(max-width:800px)').matches) {
+            const el = document.querySelector('.question-card');
+            if (el)
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } }); };
         this.handleHash = () => { const p = location.hash.replace('#', ''); if (sideLinks.some(x => x[0] === p)) {
             this.setState({ page: p, quiz: null, quizResult: null });
         } };
@@ -130,8 +136,8 @@ class App extends Component {
             this.setState({ loading: false });
             this.toast('Unable to load learning data: ' + e.message);
         } };
-        this.nav = (page) => { this.setState({ page, quiz: null, quizResult: null, mobileOpen: false, search: '' }); history.replaceState({}, '', page === 'dashboard' ? './' : '#' + page); window.scrollTo({ top: 0, behavior: 'smooth' }); };
-        this.goDay = (day) => { this.setState({ page: 'lesson', selectedDay: day, quiz: null, quizResult: null, mobileOpen: false }); history.replaceState({}, '', '#lesson-' + day); window.scrollTo(0, 0); };
+        this.nav = (page) => { this.setState({ page, quiz: null, quizResult: null, mobileOpen: false, search: '' }, this.scrollTop); history.replaceState({}, '', page === 'dashboard' ? './' : '#' + page); };
+        this.goDay = (day) => { this.setState({ page: 'lesson', selectedDay: day, quiz: null, quizResult: null, mobileOpen: false }, this.scrollTop); history.replaceState({}, '', '#lesson-' + day); };
         this.mark = async (day, field, value) => { try {
             const res = await api('/api/lesson', { method: 'POST', body: JSON.stringify({ learner: this.learner, day, field, value }) });
             saveBackup(this.learner, res.backup);
@@ -143,9 +149,8 @@ class App extends Component {
         } };
         this.startQuiz = async (id) => { try {
             const quiz = await api('/api/quiz/' + id + '?learner=' + encodeURIComponent(this.learner));
-            this.setState({ quiz, quizResult: null, answers: {}, remaining: quiz.timeLimitSeconds, currentQ: 0, quizStarted: Date.now(), page: 'quiz', quizSubmitting: false });
+            this.setState({ quiz, quizResult: null, answers: {}, remaining: quiz.timeLimitSeconds, currentQ: 0, quizStarted: Date.now(), page: 'quiz', quizSubmitting: false, mobileOpen: false }, this.scrollTop);
             history.replaceState({}, '', '#quiz');
-            window.scrollTo(0, 0);
         }
         catch (e) {
             this.toast(e.message);
@@ -155,9 +160,8 @@ class App extends Component {
             return; const { quiz, answers, quizStarted } = this.state; this.setState({ quizSubmitting: true }); try {
             const res = await api('/api/quiz/' + quiz.id + '/submit', { method: 'POST', body: JSON.stringify({ learner: this.learner, answers, elapsedSeconds: Math.round((Date.now() - quizStarted) / 1000) }) });
             saveBackup(this.learner, res.backup);
-            this.setState({ quizResult: res.result, summary: res.summary, quizSubmitting: false });
+            this.setState({ quizResult: res.result, summary: res.summary, quizSubmitting: false }, this.scrollTop);
             this.toast(auto ? 'Time is up. Your attempt was graded.' : 'Your attempt is graded and saved.');
-            window.scrollTo(0, 0);
         }
         catch (e) {
             this.setState({ quizSubmitting: false });
@@ -183,7 +187,7 @@ class App extends Component {
             this.toast(e.message);
         } };
         this.learner = readLearner();
-        this.state = { page: 'dashboard', selectedDay: 1, weekFilter: 'all', search: '', loading: true, lessons: [], summary: null, quiz: null, quizResult: null, answers: {}, currentQ: 0, remaining: 0, quizSubmitting: false, quizStarted: 0, simPrompt: 'Explain what an API is in one sentence.', simSystem: 'You are a concise and friendly teacher.', simMax: 256, simOutput: null, simLoading: false, mobileOpen: false, notice: '', showReset: false };
+        this.state = { page: 'dashboard', selectedDay: 1, weekFilter: 'all', search: '', loading: true, lessons: [], summary: null, quiz: null, quizResult: null, answers: {}, currentQ: 0, remaining: 0, quizSubmitting: false, quizStarted: 0, simPrompt: 'Explain what an API is in one sentence.', simSystem: 'You are a concise and friendly teacher.', simMax: 256, simOutput: null, simLoading: false, mobileOpen: false, openNotesDay: 1, notice: '', showReset: false };
         this.ticker = null;
         this.toastTimer = null;
     }
@@ -193,10 +197,17 @@ class App extends Component {
         else
             this.setState(s => ({ remaining: s.remaining - 1 }));
     } }, 1000); window.addEventListener('hashchange', this.handleHash); this.handleHash(); }
-    componentWillUnmount() { clearInterval(this.ticker); clearTimeout(this.toastTimer); window.removeEventListener('hashchange', this.handleHash); }
+    componentDidUpdate(prevProps, prevState) {
+        if (prevState.mobileOpen !== this.state.mobileOpen) {
+            document.body.classList.toggle('mobile-nav-open', this.state.mobileOpen);
+        }
+    }
+    componentWillUnmount() { clearInterval(this.ticker); clearTimeout(this.toastTimer); window.removeEventListener('hashchange', this.handleHash); document.body.classList.remove('mobile-nav-open'); }
     renderSidebar() {
         const { page, mobileOpen, summary } = this.state;
-        return [React.createElement("div", { key: "backdrop", className: 'sidebar-backdrop ' + (mobileOpen ? 'visible' : ''), onClick: () => this.setState({ mobileOpen: false }) }), React.createElement("aside", { key: "sidebar", className: 'sidebar ' + (mobileOpen ? 'mobile-open' : '') },
+        return [React.createElement("div", { key: "backdrop", className: 'sidebar-backdrop ' + (mobileOpen ? 'visible' : ''), onClick: () => this.setState({ mobileOpen: false }) }), React.createElement("aside", { key: "sidebar", className: 'sidebar ' + (mobileOpen ? 'mobile-open' : ''), id: "app-navigation", "aria-label": "Main navigation" },
+                React.createElement("button", { className: "sidebar-close", type: "button", "aria-label": "Close menu", onClick: () => this.setState({ mobileOpen: false }) },
+                    React.createElement(Icon, { name: "x", size: 19 })),
                 React.createElement("div", { className: "brand", onClick: () => this.nav('dashboard') },
                     React.createElement("div", { className: "brand-symbol" },
                         React.createElement("span", { className: "brand-spark" }, "\u2733")),
@@ -231,7 +242,7 @@ class App extends Component {
     }
     renderHeader() { const names = { dashboard: ['Your learning dashboard', 'Your journey · Nov 1–21, 2026'], path: ['Your learning path', '21 focused sessions, one clear destination'], lesson: ['Lesson workspace', 'Read, practise, then prove you understand'], notes: ['Knowledge library', 'Every important concept, in one place'], assessments: ['Exam practice centre', 'Daily checks, weekly mocks and final assessment'], progress: ['Your progress report', 'Real evidence, not just a completion badge'], playground: ['No-key API playground', 'Experience request and response shapes without a paid API'], quiz: ['Assessment session', 'Focus. Reason. Review. Improve.'] }; const [name, desc] = names[this.state.page] || names.dashboard; return React.createElement("header", { className: "topbar" },
         React.createElement("div", { className: "topbar-left" },
-            React.createElement("button", { className: "mobile-toggle", onClick: () => this.setState(s => ({ mobileOpen: !s.mobileOpen })) },
+            React.createElement("button", { className: "mobile-toggle", "aria-label": this.state.mobileOpen ? 'Close menu' : 'Open menu', "aria-expanded": this.state.mobileOpen, "aria-controls": "app-navigation", onClick: () => this.setState(s => ({ mobileOpen: !s.mobileOpen })) },
                 React.createElement(Icon, { name: "menu" })),
             React.createElement("div", null,
                 React.createElement("div", { className: "topbar-title" }, name),
@@ -514,28 +525,52 @@ class App extends Component {
                             " ",
                             React.createElement(Icon, { name: "arrow", size: 16 }))))));
     }
-    renderNotes() { const search = this.state.search.toLowerCase(); const matches = this.state.lessons.map(l => ({ ...l, filteredNotes: l.notes.filter(n => [l.title, l.domain, n.heading, n.body].join(' ').toLowerCase().includes(search)) })).filter(l => l.filteredNotes.length); return React.createElement("div", { className: "page-content" },
-        React.createElement(BoxTitle, { eyebrow: "THE KNOWLEDGE LIBRARY", title: "Notes worth coming back to", subtitle: "Concise explanations and real developer examples for the entire certification path." }),
-        React.createElement("div", { className: "notes-search search-box" },
-            React.createElement(Icon, { name: "search", size: 19 }),
-            React.createElement("input", { placeholder: "Search tokens, tools, MCP, RAG, caching...", value: this.state.search, onChange: e => this.setState({ search: e.target.value }) })),
-        React.createElement("div", { className: "notes-stack" },
-            matches.map(l => React.createElement("div", { key: l.day, className: "notes-group" },
-                React.createElement("div", { className: "notes-group-heading" },
-                    React.createElement("span", null,
-                        "DAY ",
-                        pad(l.day)),
-                    React.createElement("h3", null, l.title),
-                    React.createElement("button", { onClick: () => this.goDay(l.day) },
-                        "Open lesson ",
-                        React.createElement(Icon, { name: "arrow", size: 14 }))),
-                React.createElement("div", { className: "notes-items" }, l.filteredNotes.map((n, i) => React.createElement("article", { key: i },
-                    React.createElement("h4", null, n.heading),
-                    React.createElement("p", null, n.body),
-                    React.createElement("div", { className: "example-line" },
-                        React.createElement("span", null, "EXAMPLE"),
-                        React.createElement("code", null, n.example))))))),
-            !matches.length && React.createElement("div", { className: "empty-state" }, "No notes match that search. Try a broader term."))); }
+    renderNotes() {
+        const search = this.state.search.trim().toLowerCase();
+        const matches = this.state.lessons.map(l => ({ ...l, filteredNotes: l.notes.filter(n => [l.title, l.domain, n.heading, n.body].join(' ').toLowerCase().includes(search)) })).filter(l => l.filteredNotes.length);
+        return React.createElement("div", { className: "page-content" },
+            React.createElement(BoxTitle, { eyebrow: "THE KNOWLEDGE LIBRARY", title: "Notes worth coming back to", subtitle: "Open the day you need, or search across the entire 21-day syllabus. No endless scrolling." }),
+            React.createElement("div", { className: "notes-search search-box" },
+                React.createElement(Icon, { name: "search", size: 19 }),
+                React.createElement("input", { "aria-label": "Search study notes", placeholder: "Search tokens, tools, MCP, RAG, caching...", value: this.state.search, onChange: e => this.setState({ search: e.target.value }) })),
+            React.createElement("div", { className: "notes-count" },
+                matches.length,
+                " day",
+                matches.length === 1 ? '' : 's',
+                " ",
+                search ? 'matching your search' : 'in your library',
+                " \u00B7 Tap a day to ",
+                search ? 'review matching notes' : 'expand its notes'),
+            React.createElement("div", { className: "notes-stack" },
+                matches.map(l => {
+                    const expanded = Boolean(search) || this.state.openNotesDay === l.day;
+                    return React.createElement("section", { key: l.day, className: 'notes-group ' + (expanded ? 'notes-expanded' : '') },
+                        React.createElement("div", { className: "notes-group-heading" },
+                            React.createElement("button", { className: "notes-expand", type: "button", "aria-expanded": expanded, "aria-controls": 'day-notes-' + l.day, onClick: () => this.setState({ openNotesDay: expanded && !search ? 0 : l.day }) },
+                                React.createElement("span", { className: "notes-day-num" },
+                                    "DAY ",
+                                    pad(l.day)),
+                                React.createElement("span", { className: "notes-topic" },
+                                    React.createElement("strong", null, l.title),
+                                    React.createElement("small", null,
+                                        l.filteredNotes.length,
+                                        " concept",
+                                        l.filteredNotes.length === 1 ? '' : 's',
+                                        " \u00B7 ",
+                                        l.domain)),
+                                React.createElement(Icon, { name: expanded ? 'down' : 'chevron', size: 18 })),
+                            React.createElement("button", { className: "notes-open-lesson", onClick: () => this.goDay(l.day) },
+                                "Open lesson ",
+                                React.createElement(Icon, { name: "arrow", size: 14 }))),
+                        expanded && React.createElement("div", { className: "notes-items", id: 'day-notes-' + l.day }, l.filteredNotes.map((n, i) => React.createElement("article", { key: i },
+                            React.createElement("h4", null, n.heading),
+                            React.createElement("p", null, n.body),
+                            React.createElement("div", { className: "example-line" },
+                                React.createElement("span", null, "EXAMPLE"),
+                                React.createElement("code", null, n.example))))));
+                }),
+                !matches.length && React.createElement("div", { className: "empty-state" }, "No notes match that search. Try a broader term.")));
+    }
     renderAssessments() {
         const s = this.state.summary;
         const weekly = [1, 2, 3].map(w => ({ id: 'week' + w, title: 'Week ' + w + ' mock exam', sub: ['API foundations, prompting & tools', 'MCP, agents, evaluation & safety', 'Production, Skills & system design'][w - 1], date: [7, 14, 21][w - 1], score: s.weekly[w - 1].score, minutes: 30, questions: 12 }));
@@ -835,10 +870,10 @@ class App extends Component {
                         React.createElement("span", null, opt),
                         React.createElement("span", { className: "option-radio" }, selected === i ? React.createElement(Icon, { name: "check", size: 13 }) : null)))),
                     React.createElement("div", { className: "question-navigation" },
-                        React.createElement("button", { className: "btn btn-outline", disabled: currentQ === 0, onClick: () => this.setState({ currentQ: currentQ - 1 }) },
+                        React.createElement("button", { className: "btn btn-outline", disabled: currentQ === 0, onClick: () => this.jumpQuestion(currentQ - 1) },
                             React.createElement(Icon, { name: "left", size: 16 }),
                             " Previous"),
-                        currentQ < quiz.questions.length - 1 ? React.createElement("button", { className: "btn btn-dark", onClick: () => this.setState({ currentQ: currentQ + 1 }) },
+                        currentQ < quiz.questions.length - 1 ? React.createElement("button", { className: "btn btn-dark", onClick: () => this.jumpQuestion(currentQ + 1) },
                             "Next question ",
                             React.createElement(Icon, { name: "arrow", size: 16 })) : React.createElement("button", { className: "btn btn-coral", disabled: quizSubmitting, onClick: () => this.submitQuiz(false) },
                             quizSubmitting ? 'Submitting...' : 'Submit exam',
@@ -847,7 +882,7 @@ class App extends Component {
                 React.createElement("div", { className: "question-sidebar" },
                     React.createElement("div", { className: "eyebrow" }, "QUESTION NAVIGATOR"),
                     React.createElement("p", null, "Jump to any question. Orange means answered."),
-                    React.createElement("div", { className: "question-dots" }, quiz.questions.map((q, i) => React.createElement("button", { key: q.id, className: (currentQ === i ? 'current ' : '') + (answers[q.id] !== undefined ? 'answered' : ''), onClick: () => this.setState({ currentQ: i }) }, i + 1))),
+                    React.createElement("div", { className: "question-dots" }, quiz.questions.map((q, i) => React.createElement("button", { key: q.id, className: (currentQ === i ? 'current ' : '') + (answers[q.id] !== undefined ? 'answered' : ''), onClick: () => this.jumpQuestion(i) }, i + 1))),
                     React.createElement("div", { className: "question-key" },
                         React.createElement("span", null,
                             React.createElement("i", { className: "current" }),

@@ -99,5 +99,21 @@ test('mobile startup uses React 16-compatible structure and tolerates restricted
  assert.doesNotMatch(jsx,/<><div className=\{'sidebar-backdrop/);
  assert.match(js,/localStorage\.getItem/);
  assert.match(js,/claudepath_learner/);
- assert.match(html,/app\.js\?v=mobilefix-2/);
+ assert.match(html,/app\.js\?v=layoutfix-3/);
+});
+
+
+test('responsive navigation, collapsible notes and quiz scrolling are included',()=>{
+ const src=fs.readFileSync(path.join(__dirname,'../src/app.jsx'),'utf8');
+ const css=fs.readFileSync(path.join(__dirname,'../public/styles.css'),'utf8');
+ assert.match(src,/jumpQuestion=\(index\)/);
+ assert.match(src,/scrollIntoView\(\{behavior:'smooth',block:'start'\}\)/);
+ assert.match(src,/openNotesDay:1/);
+ assert.match(src,/aria-expanded=\{expanded\}/);
+ assert.match(src,/mobile-nav-open/);
+ assert.match(css,/\.sidebar \{ overflow-y: auto;/);
+ assert.match(css,/\.lesson-aside \{ display:flex; flex-direction:column;/);
+ assert.match(css,/\.notes-expand \{ display:flex;/);
+ assert.match(css,/\.question-dots button \{ height:44px;/);
+ assert.match(css,/safe-area-inset-bottom/);
 });

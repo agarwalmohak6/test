@@ -1,0 +1,575 @@
+[
+  {
+    "episode": "EP01",
+    "title": "Every Question Is One of Four Decisions",
+    "timeRange": "00:00–09:57",
+    "decision": "Exam strategy · all four decisions",
+    "decisionKey": "all",
+    "overview": "Start every exam question by identifying the developer decision it is testing. The source frames the exam around four recurring decisions: what runs, how it calls Claude, what Claude sees and says, and whether the system survives production. Naming the decision narrows the relevant options; the constraint in the question then helps eliminate the distractors.",
+    "topics": [
+      {
+        "heading": "The four-decision map",
+        "body": "What runs? Think about the application architecture, workflows and agents. How does it call Claude? Think about the API interaction and the mechanism used to send work. What does Claude see and say? Think about context, prompts and the shape of the response. Will it survive production? Think about requirements, lifecycle, debugging and security."
+      },
+      {
+        "heading": "Rule 1 — match the mechanism to the constraint",
+        "body": "The source's sample question describes 10,000 documents that can be processed overnight, with cost as the main concern and no need for an immediate result. The batch lane exists for high-volume work where results can arrive later. Generic adjustments such as running in parallel, capping tokens or switching to a smaller model do not directly satisfy the stated constraint as well as the batch mechanism."
+      },
+      {
+        "heading": "Rule 2 — guidance is not enforcement",
+        "body": "A page summarizer may receive hidden instructions through the content it reads. Asking the model or the user to behave correctly is only guidance. If the requirement is absolute, use a mechanism that enforces the boundary: isolation, a blocking hook, or a schema that constrains the output."
+      }
+    ],
+    "thumbRules": [
+      "Name the decision before looking at the answer choices.",
+      "Find the actual constraint in the stem; choose the mechanism built for it.",
+      "A generic knob is a distractor when a specific mechanism directly solves the constraint.",
+      "When the stem says must, never, always or cannot, prefer an enforceable control over polite wording."
+    ],
+    "examTrap": "Choosing a familiar setting (model size, token cap or parallelism) instead of the mechanism that directly satisfies the stated requirement.",
+    "memoryLine": "Decision first. Constraint second. Mechanism third."
+  },
+  {
+    "episode": "EP02",
+    "title": "One Ticket, One Call",
+    "timeRange": "09:57–18:40",
+    "decision": "How does it call Claude? · request and response fundamentals",
+    "decisionKey": "call",
+    "overview": "Build the smallest useful support-desk flow: send one ticket in a Messages API call and receive a summary. Learn what tokens are, what occupies the context window, how messages are represented, where usage is reported, and why identical requests can produce different wording.",
+    "topics": [
+      {
+        "heading": "Tokens and the context window",
+        "body": "Claude generates output one token at a time. Tokens are chunks of text, not necessarily whole words. Input and output are measured in tokens, and token usage drives cost. The context window is the model's working space for the call: the request, messages, described tools and generated answer all compete for that space. If information is not in the context, it is not available to the model for that call."
+      },
+      {
+        "heading": "Messages and roles",
+        "body": "A request contains a list of messages, each tagged with a role. User and assistant turns form the conversation. The source notes that consecutive user turns can be folded into one turn by the API rather than causing an error. Treat the message list as the conversation you are explicitly sending, not as server-side memory."
+      },
+      {
+        "heading": "Read the response and usage",
+        "body": "A successful response can still be incomplete, as in the opening ticket summary that stops mid-sentence. Inspect response metadata rather than assuming that a returned message is necessarily complete. Usage information reports the token consumption, so it is useful for understanding what the call cost."
+      },
+      {
+        "heading": "Non-deterministic wording",
+        "body": "The model samples plausible next tokens, so the same input can produce different wording on separate runs. Temperature historically influenced sampling but did not guarantee identical output; the source notes that newer model generations may not expose that control. Regression tests should assert required structure and content rather than exact prose."
+      }
+    ],
+    "thumbRules": [
+      "Tokens are the unit of context and cost; they are not the same as words.",
+      "The context window includes input, tool definitions and generated output.",
+      "The API does not remember earlier turns unless your application sends the history again.",
+      "Test required fields and meaning, not the exact wording of a generated paragraph.",
+      "Do not assume a temperature setting guarantees deterministic output."
+    ],
+    "examTrap": "Trying to make a generative response deterministic by changing temperature, model size or max output tokens instead of testing the response's required structure and content.",
+    "memoryLine": "Same prompt does not mean identical prose."
+  },
+  {
+    "episode": "EP03",
+    "title": "Streaming, Vision, Thinking",
+    "timeRange": "18:40–28:36",
+    "decision": "How does it call Claude? · streaming, images and reasoning",
+    "decisionKey": "call",
+    "overview": "The live desk can type, read images and spend more reasoning effort on difficult tickets. These capabilities change the request or delivery mode, but they do not require inventing a different endpoint for every feature. The screenshot's key lesson is that streaming is server-sent events over the same call, images are tokenized content blocks, and thinking consumes output tokens.",
+    "topics": [
+      {
+        "heading": "Streaming is the same call, delivered in pieces",
+        "body": "Unstreamed responses arrive all at once. Streaming lets the application receive server-sent events as the model generates the answer, so the user can see progress immediately. The source's exam scenario asks for visible progress and fewer perceived timeouts; streaming fits those requirements. A WebSocket is not the API's streaming mechanism in this scenario, and simply raising the timeout does not show progress."
+      },
+      {
+        "heading": "Vision and document cost",
+        "body": "An image is another typed content block in the message. Images are represented using tokens and patches, so larger images can cost more. If the text is already available, send the text rather than a screenshot of the same paragraph. A PDF can contribute both extracted text and page images. The source notes that an animation is treated by its first frame; exact format, size and count limits belong in a reference sheet rather than rote memory."
+      },
+      {
+        "heading": "Thinking is a cost decision",
+        "body": "For difficult tickets, a model can spend additional reasoning effort before writing the visible answer. The screenshot emphasizes that thinking costs output tokens, so reserve it for hard tasks where the extra reasoning is useful. The source distinguishes newer generations where thinking is on and the model decides how much to use, from an earlier generation where adaptive thinking is explicitly selected and the model chooses depth."
+      },
+      {
+        "heading": "Keep nearby API concepts distinct",
+        "body": "A rate-limit error points to your traffic exceeding a limit; an overloaded error points to service-side load. Async processing allows one process to keep many calls in flight. Batch processing is a separate, later episode and is not the same as streaming."
+      }
+    ],
+    "thumbRules": [
+      "Need visible progress while the answer is generated? Stream it with server-sent events.",
+      "Streaming is still the same API call; it changes how the response is delivered.",
+      "If you already have text, send text instead of an image of that text.",
+      "Bigger images and PDF page images add token cost.",
+      "Thinking consumes output tokens; spend it on the hard tickets.",
+      "Rate limit = your traffic. Overloaded = provider-side load. Async concurrency is not batch."
+    ],
+    "examTrap": "Raising a timeout or choosing WebSockets when the requirement is immediate visible progress from a response that is being generated.",
+    "memoryLine": "Stream for progress. Text before pixels. Think where it matters."
+  },
+  {
+    "episode": "EP04",
+    "title": "The Quarter That Isn't About Claude",
+    "timeRange": "28:36–39:18",
+    "decision": "Will it survive production? · workflows and lifecycle",
+    "decisionKey": "production",
+    "overview": "A production support desk needs more than a model call. It needs routing, operational logic and a fallback plan. The central lesson is to use conventional software for deterministic tasks and reserve Claude for ambiguity, nuance and language understanding that ordinary code cannot handle economically.",
+    "topics": [
+      {
+        "heading": "Build a pipeline, not an AI for everything",
+        "body": "Ticket routing can often be done with if/else logic, a lookup table, a regex or known keywords such as refund and login error. Calling Claude for a deterministic rule adds cost and latency without adding useful intelligence. Escalate to Claude only when the category is ambiguous or falls into an uncertain or miscellaneous case."
+      },
+      {
+        "heading": "Treat Claude as one component",
+        "body": "The exam's Agents and Workflows domain is about designing a system around the model. Claude is not the entire application brain. Keep predictable business rules in normal code and let the model handle the parts that require interpretation."
+      },
+      {
+        "heading": "Design for failure",
+        "body": "Monitor the application, log important events, handle errors and provide a way to bypass the model when it fails or begins returning unreliable output. Graceful degradation means the whole support desk does not go dark just because Claude is unavailable."
+      }
+    ],
+    "thumbRules": [
+      "Deterministic and repetitive? Use ordinary code first.",
+      "Use Claude when the task needs ambiguity handling, nuance or language understanding.",
+      "Do not pay for a model call to do a lookup table's job.",
+      "A production workflow needs logging, error handling and a model-bypass path."
+    ],
+    "examTrap": "Selecting an agent or model for a task that a simple conditional, regex or lookup table can perform reliably.",
+    "memoryLine": "Use code for rules; use the model for ambiguity."
+  },
+  {
+    "episode": "EP05",
+    "title": "The Three Surfaces",
+    "timeRange": "39:18–50:01",
+    "decision": "What does Claude see and say? · prompt placement and output shape",
+    "decisionKey": "see",
+    "overview": "The same instruction can behave differently in a chat window, a coding session and the API service. The developer must put instructions in the correct place for the surface being used and clearly separate instructions, context, examples and user-provided content.",
+    "topics": [
+      {
+        "heading": "The surface changes how instructions are interpreted",
+        "body": "The source's example is the instruction “Never promise a refund date.” It behaves differently when buried in ordinary message text than when placed in the specific API field used for system rules. Do not assume that a successful instruction in a chat product automatically transfers to a coding surface or an API request."
+      },
+      {
+        "heading": "Separate content with clear boundaries",
+        "body": "Use labelled tags to distinguish instructions, reference context, examples and user input. The purpose is to stop different kinds of content from blurring together and to make the prompt's structure explicit."
+      },
+      {
+        "heading": "A schema is a response contract",
+        "body": "When the output feeds a dashboard or backend, prose is not a reliable interface. Define a schema that constrains the response to the shape the application expects. Treat the schema as a contract; unsupported schema features can be rejected rather than silently behaving as intended."
+      }
+    ],
+    "thumbRules": [
+      "Put system instructions in the system-instruction field for the API surface.",
+      "Do not assume chat, coding and API surfaces share the same defaults.",
+      "Label and separate instructions, context, examples and user input.",
+      "If code needs predictable JSON, use a schema instead of hoping for valid prose."
+    ],
+    "examTrap": "Putting a critical system instruction in ordinary user content, or asking for JSON in prose when the application needs a guaranteed structure.",
+    "memoryLine": "Correct surface. Clear boundaries. Schema as contract."
+  },
+  {
+    "episode": "EP06",
+    "title": "Same Repo, Three Different Claudes",
+    "timeRange": "50:01–1:00:52",
+    "decision": "Will it survive production? · configuration and trusted extensions",
+    "decisionKey": "production",
+    "overview": "A chat product, a coding session and an API service are distinct working surfaces. A prompt or workflow that works in one may behave differently in another because their system-level defaults differ. Scaling a team means replacing ad-hoc setup with repeatable configuration and treating installable extensions as trusted dependencies.",
+    "topics": [
+      {
+        "heading": "Do not assume the surfaces are interchangeable",
+        "body": "The same repository can be used through a chat product, a coding environment and the API, but those surfaces do not necessarily share the same defaults or instruction handling. Validate behavior in the surface where the application will actually run."
+      },
+      {
+        "heading": "Standardize configuration",
+        "body": "Move away from one-off prompting and undocumented local conventions. Use structured, repeatable configuration so team members and environments can reproduce the same intended behavior."
+      },
+      {
+        "heading": "Plugins bundle capabilities and carry trust risk",
+        "body": "The episode describes plugins as a way to bundle skills, hooks and tools into an installable unit. Because a plugin may run code with the user's privileges, installing it is a trust decision. Review it with the same care you would give another software dependency."
+      }
+    ],
+    "thumbRules": [
+      "Validate behavior on the actual surface where it will run.",
+      "Standardize shared configuration instead of relying on ad-hoc prompts.",
+      "A plugin can bundle skills, hooks and tools.",
+      "Treat a plugin as executable code and a dependency: check its trust and permissions."
+    ],
+    "examTrap": "Assuming a chat prompt's behavior is automatically identical in the API, or installing a plugin without considering the privileges it receives.",
+    "memoryLine": "Same repo does not mean same surface or same defaults."
+  },
+  {
+    "episode": "EP07",
+    "title": "Asking Is Not Making Sure",
+    "timeRange": "1:00:52–1:10:36",
+    "decision": "What does Claude see and say? · hallucination resistance and guarantees",
+    "decisionKey": "see",
+    "overview": "A polite prompt can reduce mistakes but cannot guarantee that a model will obey. To improve reliability, make prompts clear, give examples, allow the model to say it does not know, constrain output where possible and measure prompt quality with tests.",
+    "topics": [
+      {
+        "heading": "The competent-stranger test",
+        "body": "Show the prompt to someone who knows nothing about the task. If that person cannot tell what the model should do, what information it can use or what the output should look like, the prompt is not clear enough."
+      },
+      {
+        "heading": "Give the model permission to say it does not know",
+        "body": "Explicitly tell the model not to guess when the available information is insufficient. This can reduce confident invention, but it remains an instruction rather than a hard enforcement boundary."
+      },
+      {
+        "heading": "Use examples and structure",
+        "body": "Few-shot prompting demonstrates the desired output with worked examples. Structured output uses a schema to define the required shape and makes the result parsable by construction. These mechanisms are stronger than relying on a vague request for a particular format."
+      },
+      {
+        "heading": "Measure prompt quality",
+        "body": "Treat a prompt as something to evaluate against criteria, not merely something to write. Test whether a new version improves the expected behavior before accepting the change."
+      }
+    ],
+    "thumbRules": [
+      "If a competent stranger cannot understand the prompt, the model may not either.",
+      "Tell the model when to admit it does not know rather than guess.",
+      "Use few-shot examples to demonstrate the desired pattern.",
+      "Use a schema when output shape must be machine-readable.",
+      "Measure prompt changes with tests; do not judge them by wording alone."
+    ],
+    "examTrap": "Treating a polite instruction as a guarantee, or assuming “please return JSON” is equivalent to schema-constrained output.",
+    "memoryLine": "Asking improves behavior; mechanisms create guarantees."
+  },
+  {
+    "episode": "EP08",
+    "title": "A Bigger Window Makes It Worse",
+    "timeRange": "1:10:36–1:19:58",
+    "decision": "What does Claude see and say? · context management",
+    "decisionKey": "see",
+    "overview": "Longer conversation history does not automatically improve an application. The API does not keep conversation memory for you: each turn must include the history you want the model to use. As the history grows, irrelevant material can create context rot and make the model less focused.",
+    "topics": [
+      {
+        "heading": "The API does not store your conversation for the next call",
+        "body": "Every turn requires the application to send the relevant thread again. The request therefore grows as the conversation grows. The model only sees the messages and content included in the current request."
+      },
+      {
+        "heading": "Prune old material",
+        "body": "Remove outdated tool results and messages that are no longer relevant. Do not keep every historical detail merely because it exists; retain what the next task actually needs."
+      },
+      {
+        "heading": "Compact history into a useful summary",
+        "body": "Compaction replaces older conversation history with a synthesized summary, keeping the request manageable while preserving important state. The source warns against choosing options that rely on client-library-based compaction methods described as deprecated or outdated."
+      },
+      {
+        "heading": "Isolate long-running work",
+        "body": "For complex tasks, move a specific job to a separate agent with its own context window rather than stuffing every detail into the main conversation. Isolation keeps the main thread cleaner and gives the subtask only the context it needs."
+      }
+    ],
+    "thumbRules": [
+      "Assume each API turn must resend the history it needs.",
+      "More context is not always better; watch for context rot.",
+      "Prune stale messages and tool results.",
+      "Compact older history into a summary when the full thread is no longer useful.",
+      "Use isolated sub-agents for complex long-running work rather than bloating one context."
+    ],
+    "examTrap": "Assuming the API remembers the thread automatically, or that simply increasing the context window is the best fix for a bloated conversation.",
+    "memoryLine": "Keep the context useful, not merely large."
+  },
+  {
+    "episode": "EP09",
+    "title": "The Three Places a Call Can Break",
+    "timeRange": "1:19:58–1:30:42",
+    "decision": "Will it survive production? · debugging and validation",
+    "decisionKey": "production",
+    "overview": "Debugging becomes easier when the request and response shape are predictable. When an API call fails, capture the structured error details. When a call succeeds but the result is still wrong for the application, validate your own parser and business logic rather than assuming the model call itself failed.",
+    "topics": [
+      {
+        "heading": "Log the error identity",
+        "body": "The source says an API error includes a type, a human-readable message and a unique request ID. Log all three, especially the request ID, so the specific failure can be traced and investigated."
+      },
+      {
+        "heading": "Use retry behavior carefully",
+        "body": "Client libraries can automatically retry transient failures with increasing delays (backoff). Adding a second retry system without understanding the SDK behavior can duplicate retries. Retrying a genuinely invalid request will not fix it and can waste time or money."
+      },
+      {
+        "heading": "Separate model failure from application failure",
+        "body": "A model can complete successfully while your application still produces an unusable result. If the output is malformed or fails the application's expectations, inspect the parser and validation layer. Rigorous validation is the reliable way to catch those errors."
+      }
+    ],
+    "thumbRules": [
+      "Log error type, message and request ID.",
+      "Use the request ID to trace a specific failure.",
+      "Know what automatic retry/backoff your client library already performs.",
+      "Do not retry invalid requests as if they were transient failures.",
+      "Successful model output still needs application-side parsing and validation."
+    ],
+    "examTrap": "Writing duplicate retry logic without checking SDK defaults, or blaming the model when the application parser accepts invalid output.",
+    "memoryLine": "Trace the call. Classify the failure. Validate the result."
+  },
+  {
+    "episode": "EP10",
+    "title": "input_tokens Is Not Your Input",
+    "timeRange": "1:30:42–1:40:56",
+    "decision": "How does it call Claude? · model choice and token economics",
+    "decisionKey": "call",
+    "overview": "Choose a model tier based on the task and optimize the cost driver that is actually dominating the request. The episode distinguishes model capability tiers, reasoning effort, repeated static input and pre-flight token counting.",
+    "topics": [
+      {
+        "heading": "Choose the right model tier",
+        "body": "The source describes a top tier for complex work, a middle tier as a scalable workhorse and a fast/cheap tier for high-volume simple tasks. The best choice follows the task's requirements rather than always selecting the most powerful model."
+      },
+      {
+        "heading": "Tune effort before downgrading blindly",
+        "body": "Adjusting how much effort the model spends reasoning can be a better optimization than switching immediately to a weaker model. Use the amount of reasoning the task deserves."
+      },
+      {
+        "heading": "Find the real cost driver",
+        "body": "Static content such as policy documents can dominate input tokens when it is resent on every request. Reasoning effort affects output-side work; reducing it will not solve a bill dominated by repeated input content."
+      },
+      {
+        "heading": "Count before sending",
+        "body": "The API provides a token-counting endpoint that can estimate the tokenized request before the actual generation call. Use it as a pre-flight cost check rather than waiting for an invoice to reveal the size of the request."
+      }
+    ],
+    "thumbRules": [
+      "Complex task → consider the top tier; simple high-volume task → consider the fast/cheap tier.",
+      "Tune reasoning effort to the difficulty before downgrading the model.",
+      "If input tokens dominate, inspect repeated documents and prompt content.",
+      "If output effort dominates, review the reasoning/output budget.",
+      "Count tokens before sending when estimating request cost matters."
+    ],
+    "examTrap": "Reducing reasoning effort to fix an input-token bill, or changing model tier without identifying whether the task or the token mix is the real constraint.",
+    "memoryLine": "Optimize the side of the bill that is actually expensive."
+  },
+  {
+    "episode": "EP11",
+    "title": "Batch: Results in Any Order",
+    "timeRange": "1:40:56–1:51:50",
+    "decision": "How does it call Claude? · asynchronous batch processing",
+    "decisionKey": "call",
+    "overview": "The Message Batches API is for high-volume work when nobody needs an immediate answer. It trades immediate response for asynchronous processing and lower cost. Its most important data-integrity lesson is that result order is not guaranteed to match submission order.",
+    "topics": [
+      {
+        "heading": "Synchronous lane vs batch lane",
+        "body": "Use a synchronous call when someone is waiting for the answer now. Use batch when the work can be submitted in bulk and collected later, such as overnight processing. The source describes batch as a discounted lane compared with standard synchronous calls."
+      },
+      {
+        "heading": "Never match results by position",
+        "body": "Batch results may return in a different order from the input requests, and the result file is not necessarily a one-to-one positional mirror of the input file. Give every request a unique custom identifier and match each result back using that identifier."
+      },
+      {
+        "heading": "Check platform support",
+        "body": "Batch is a deliberate architectural choice. Verify that the target deployment platform supports the feature before designing a workflow around it."
+      }
+    ],
+    "thumbRules": [
+      "If nobody is waiting now and volume is high, choose batch.",
+      "If the result is needed immediately, use the synchronous lane.",
+      "Batch is asynchronous and the source notes a cost discount.",
+      "Attach a unique custom ID to every request.",
+      "Never map batch results back to inputs by array position.",
+      "Verify platform support before depending on batch."
+    ],
+    "examTrap": "Assuming the results file preserves input order and joining the two files by index.",
+    "memoryLine": "Batch later. Correlate by ID, never by order."
+  },
+  {
+    "episode": "EP12",
+    "title": "The Description Is the Interface",
+    "timeRange": "1:51:50–2:02:43",
+    "decision": "What does Claude see and say? · tool design",
+    "decisionKey": "see",
+    "overview": "A tool's description is the interface the model uses to understand when and why it should call that tool. Good tool design makes the model's decision easier, keeps the tool set manageable and limits unnecessary data returned into the context window.",
+    "topics": [
+      {
+        "heading": "Descriptions guide tool selection",
+        "body": "The tool description explains what the tool does and when it should be used. Treat it as part of the model-facing interface, not as optional documentation for a human developer."
+      },
+      {
+        "heading": "Prefer fewer, broader tools with parameters",
+        "body": "Instead of creating many tiny tools that differ only slightly, use fewer tools that accept parameters for the action or resource they should handle. This creates a clearer, more maintainable tool surface."
+      },
+      {
+        "heading": "Namespace broad tools",
+        "body": "When tools cover multiple systems, include the system name in the tool name. The source gives `orders_get_order` as an example, helping distinguish an orders system from a returns system and reducing name collisions."
+      },
+      {
+        "heading": "Return only useful fields",
+        "body": "Tool results are added to the model's context. Return only the fields needed for the user's current request—for example status, date and item—instead of sending an entire record or unnecessary payload."
+      }
+    ],
+    "thumbRules": [
+      "A tool description is the model's interface for deciding when to call it.",
+      "Prefer fewer broad tools with clear parameters over many near-duplicates.",
+      "Namespace tools when several systems are involved.",
+      "Return only the fields needed for the current task.",
+      "Remember tool output consumes context too."
+    ],
+    "examTrap": "Creating many redundant tools or returning entire database records when a few fields would answer the question.",
+    "memoryLine": "Describe clearly. Parameterize broadly. Return narrowly."
+  },
+  {
+    "episode": "EP13",
+    "title": "An MCP Server Is Not a Bag of Tools",
+    "timeRange": "2:02:43–2:12:59",
+    "decision": "How does it call Claude? · MCP boundaries and primitives",
+    "decisionKey": "call",
+    "overview": "MCP is an integration boundary, not merely a list of tools. The server receives its own calls and arguments; it does not automatically see the whole conversation or other servers. The episode distinguishes the protocol's three primitives and when to choose a custom tool, MCP server or skill.",
+    "topics": [
+      {
+        "heading": "The wire is a boundary",
+        "body": "An MCP server receives the calls and arguments directed to it. It cannot read the full conversation or access other servers just because it is connected. Treat the wire as both a connection and a security boundary."
+      },
+      {
+        "heading": "Know the three primitives",
+        "body": "Tools are executable actions controlled by the model. Resources are application-controlled data provided by the app. Prompts are user-controlled templates. Learn the distinction between who controls each primitive and what it is for."
+      },
+      {
+        "heading": "Choose the integration shape",
+        "body": "A custom tool sits inside one host without an external wire and suits a simple self-contained task. An MCP server sits at the far end of a connection and can let several hosts reach the same resource. A skill is a folder containing a `skill.md` file that teaches the host how to use a service on the other side of an MCP connection."
+      },
+      {
+        "heading": "Ask: do or know?",
+        "body": "If the capability needs to do something new, think about a tool or server. If it needs to know how to use a service or perform a procedure, think about a skill. The source uses this as a fast decision rule."
+      }
+    ],
+    "thumbRules": [
+      "Tools = executable actions; Resources = app-provided data; Prompts = user-controlled templates.",
+      "An MCP server sees its own calls and arguments, not the entire conversation by default.",
+      "One host and one self-contained task → consider a custom tool.",
+      "Several hosts sharing access to a resource → consider an MCP server.",
+      "A skill teaches the host how to use a service; it is not itself the remote service.",
+      "Ask whether the need is to do something or to know how."
+    ],
+    "examTrap": "Treating MCP as a global bag of tools with unrestricted access to the conversation, or confusing a skill with a server-side executable tool.",
+    "memoryLine": "Tools do. Resources provide. Prompts template. Skills teach."
+  },
+  {
+    "episode": "EP14",
+    "title": "Usually Fewer Agents",
+    "timeRange": "2:12:59–2:24:14",
+    "decision": "What runs? · workflow vs agentic systems",
+    "decisionKey": "runs",
+    "overview": "The key distinction between a workflow and an agentic system is who chooses the next step. Workflows follow paths written by the developer; agents direct their own process and tool use. More autonomy adds flexibility but trades away some predictability and consistency while increasing cost and latency.",
+    "topics": [
+      {
+        "heading": "Who chooses the next step?",
+        "body": "In a workflow, the developer defines the path and the model/tools follow it. In an agentic system, the model directs its own process, chooses tools and decides how to handle the task. This is the defining distinction in the episode."
+      },
+      {
+        "heading": "Start with the simpler design",
+        "body": "Move toward an agentic design only when a simpler workflow cannot handle the task. Each move toward more autonomy trades predictability and consistency for flexibility, and can increase cost and latency."
+      },
+      {
+        "heading": "Manager and sub-agent hierarchies",
+        "body": "A manager, supervisor or lead agent can coordinate specialized sub-agents. Keep the terminology precise: the source warns that calling this simply an orchestrator can be confused with the workflow-based orchestrator-workers pattern."
+      },
+      {
+        "heading": "Isolate sub-agents",
+        "body": "Give sub-agents their own context windows, instructions and tools. Each should receive only what it needs. This keeps the main thread cleaner and makes the work easier to inspect and audit."
+      }
+    ],
+    "thumbRules": [
+      "Workflow = developer chooses the path; agent = model chooses the next step.",
+      "Start with a workflow; add autonomy only when needed.",
+      "More autonomy means more flexibility, but also more cost, latency and variability.",
+      "Manager/supervisor/lead patterns coordinate specialized sub-agents.",
+      "Give each sub-agent its own context, instructions and tools."
+    ],
+    "examTrap": "Choosing a multi-agent system for a task that a deterministic workflow can already handle, or confusing manager-agent hierarchies with orchestrator-workers workflows.",
+    "memoryLine": "Who chooses the next step? That tells you workflow or agent."
+  },
+  {
+    "episode": "EP15",
+    "title": "Self-Hosted Is Not Air-Gapped",
+    "timeRange": "2:24:14–2:35:19",
+    "decision": "What runs? · agent loops and the harness",
+    "decisionKey": "runs",
+    "overview": "An agentic loop gathers context, takes an action, checks what happened and repeats until the task is complete. Developers can implement that loop themselves, use an Agent SDK inside their own process, or use a managed agent product. The design question is which responsibilities live in the model and which live in the surrounding harness or infrastructure.",
+    "topics": [
+      {
+        "heading": "Understand the agent loop",
+        "body": "The loop is gather context → take action → verify the result → repeat if necessary. Each trip through this cycle contributes to the agent's turns. The harness determines how the loop is run and what controls surround it."
+      },
+      {
+        "heading": "Three implementation tiers",
+        "body": "Manual implementation uses the Messages API and gives the developer direct control, but the developer manages each step. An Agent SDK runs the loop inside the developer's own process and infrastructure. Managed Agents are hosted agent products provided by Anthropic."
+      },
+      {
+        "heading": "Separate the model from the harness",
+        "body": "The model is the reasoning component in the middle; the harness is the surrounding loop, tools, permissions and infrastructure. Two products using the same model can behave differently because their harnesses differ. Hosting the loop yourself does not, by itself, remove the external model or service boundaries it depends on."
+      }
+    ],
+    "thumbRules": [
+      "Agent loop = gather context, act, verify, repeat.",
+      "Messages API = manual control, but you manage every loop step.",
+      "Agent SDK = loop runs in your process/infrastructure.",
+      "Managed Agents = hosted agent product.",
+      "Separate what the model does from what the harness controls.",
+      "Same model does not guarantee same product behavior; the harness matters."
+    ],
+    "examTrap": "Assuming the model alone defines the agent's behavior, or assuming self-hosting the loop automatically means the whole system is air-gapped.",
+    "memoryLine": "The model reasons; the harness runs and governs the loop."
+  },
+  {
+    "episode": "EP16",
+    "title": "The Attack Arrives as a Ticket",
+    "timeRange": "2:35:19–2:46:42",
+    "decision": "Will it survive production? · prompt injection and controls",
+    "decisionKey": "production",
+    "overview": "Prompt injection can arrive directly from a malicious user or indirectly inside content the application retrieves. The security boundary is not just the prompt: the guardrails and controls around the model call determine which actions are allowed. Policies describe expected behavior; controls enforce boundaries.",
+    "topics": [
+      {
+        "heading": "Direct vs indirect prompt injection",
+        "body": "Direct prompt injection is an adversarial user crafting input to bypass system rules. Indirect prompt injection occurs when a trusted user asks the application to process external content—such as a page, email or tool result—that contains malicious instructions."
+      },
+      {
+        "heading": "Separate intent from permission",
+        "body": "What reaches the model call influences what Claude tries to do. The guardrails around the call decide what is allowed. Never treat a model instruction as the only security boundary for a privileged action."
+      },
+      {
+        "heading": "Use blocking hooks and screening",
+        "body": "The source highlights pre-tool-use hooks and screening. In the described hook behavior, exit code 2 blocks the request while exit code 1 does not. Learn which result actually blocks rather than assuming every non-zero result has the same meaning."
+      },
+      {
+        "heading": "Protect secrets and scope access",
+        "body": "Use a secrets manager scoped to a workspace, prefer short-lived tokens over long-lived keys and use sandboxes that protect only specific named resources. The aim is to reduce the impact if untrusted content tries to redirect the agent."
+      },
+      {
+        "heading": "Policy is not a control",
+        "body": "Writing “do not do this” is a policy. A control is a mechanism that prevents or blocks the prohibited action. The episode returns to the exam's guarantee rule: a polite request is not an enforceable boundary."
+      }
+    ],
+    "thumbRules": [
+      "Direct injection comes from the user; indirect injection arrives in retrieved external content.",
+      "Treat web pages, emails and tool results as potentially untrusted input.",
+      "The prompt influences what Claude tries; guardrails decide what is allowed.",
+      "In the described hook: exit code 2 blocks; exit code 1 does not.",
+      "Use workspace-scoped secrets, short-lived tokens and narrowly scoped sandboxes.",
+      "A policy says what should happen; a control enforces what can happen."
+    ],
+    "examTrap": "Relying on a system prompt or a polite policy to stop a malicious tool action instead of enforcing permissions with hooks, screening and isolation.",
+    "memoryLine": "Never confuse policy with control."
+  },
+  {
+    "episode": "EP17",
+    "title": "Exam Day: Name the Decision First",
+    "timeRange": "2:46:42–2:57:55",
+    "decision": "Exam strategy · complete review",
+    "decisionKey": "all",
+    "overview": "The capstone turns the support-desk build into an exam map. For every question, identify which of the four developer decisions it tests before evaluating the options. Then use the constraint rule and guarantee rule to eliminate answers that do not meet the requirement.",
+    "topics": [
+      {
+        "heading": "Step 1 — name the decision",
+        "body": "What runs? How does it call Claude? What does Claude see and say? Will it survive production? These four questions organize the whole exam. Identify the category before reading too much into the answer choices."
+      },
+      {
+        "heading": "Step 2 — apply the constraint rule",
+        "body": "Find the specific constraint named in the question and choose the mechanism built for it. A generic setting change—such as swapping models or changing temperature—may be a distractor when a purpose-built mechanism directly meets the requirement."
+      },
+      {
+        "heading": "Step 3 — apply the guarantee rule",
+        "body": "Look for absolute words such as must, never, always and cannot. If the question demands a guarantee, prefer a mechanism that enforces the outcome over guidance, a prompt request or a statement of policy."
+      },
+      {
+        "heading": "Step 4 — map the whole support desk",
+        "body": "Review the system from the initial API call through messages, streaming, vision, prompting, context, tools, MCP, workflows, agents, debugging and production guardrails. The project is a mental map for locating each exam question."
+      }
+    ],
+    "thumbRules": [
+      "First classify: what runs, how it calls, what it sees/says, or production survival.",
+      "Second find the named constraint and match the mechanism.",
+      "Third scan for absolute language: must, never, always, cannot.",
+      "For guarantees, choose controls over guidance.",
+      "Reject attractive generic knobs when they do not solve the stated constraint.",
+      "Use the support-desk architecture as the end-to-end map for revision."
+    ],
+    "examTrap": "Reading the options first and choosing the most familiar technology instead of identifying the decision and requirement in the question stem.",
+    "memoryLine": "Name the decision. Match the constraint. Enforce the guarantee."
+  }
+]

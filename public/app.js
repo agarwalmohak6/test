@@ -35,7 +35,8 @@ const ICON_PATHS = {
     flag: ['M5 21V4', 'M5 5c4-3 9 3 15 0v11c-6 3-11-3-15 0'],
     external: ['M14 3h7v7', 'M21 3l-9 9', 'M18 13v8H3V6h8'],
     download: ['M12 3v12', 'm7 10 5 5 5-5', 'M5 19h14'],
-    trophy: ['M8 21h8', 'M12 17v4', 'M6 3h12v8a6 6 0 0 1-12 0z', 'M6 5H3v4a4 4 0 0 0 4 4', 'M18 5h3v4a4 4 0 0 1-4 4']
+    trophy: ['M8 21h8', 'M12 17v4', 'M6 3h12v8a6 6 0 0 1-12 0z', 'M6 5H3v4a4 4 0 0 0 4 4', 'M18 5h3v4a4 4 0 0 1-4 4'],
+    bookOpen: ['M2 4h7a4 4 0 0 1 4 4v12a3 3 0 0 0-3-3H2z', 'M22 4h-7a4 4 0 0 0-4 4v12a3 3 0 0 1 3-3h8z']
 };
 function Icon({ name, size = 18, className = '' }) { return React.createElement("svg", { className: 'ico ' + className, width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.8", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, (ICON_PATHS[name] || ICON_PATHS.circle).map((d, i) => React.createElement("path", { d: d, key: i }))); }
 function Chip({ children, tone = 'neutral' }) { return React.createElement("span", { className: 'chip chip-' + tone }, children); }
@@ -104,7 +105,7 @@ function Stat({ icon, value, label, detail, tone }) { return React.createElement
         React.createElement("div", { className: "stat-value" }, value),
         React.createElement("div", { className: "stat-label" }, label),
         React.createElement("div", { className: "stat-detail" }, detail))); }
-const sideLinks = [['dashboard', 'grid', 'Overview'], ['path', 'layers', 'Learning path'], ['notes', 'book', 'Study notes'], ['assessments', 'list', 'Assessments'], ['progress', 'chart', 'My progress'], ['playground', 'terminal', 'API playground']];
+const sideLinks = [['dashboard', 'grid', 'Overview'], ['path', 'layers', 'Learning path'], ['notes', 'book', 'Study notes'], ['rules', 'bookOpen', 'Rules'], ['assessments', 'list', 'Assessments'], ['progress', 'chart', 'My progress'], ['playground', 'terminal', 'API playground']];
 class App extends Component {
     constructor(props) {
         super(props);
@@ -118,6 +119,18 @@ class App extends Component {
             this.setState({ page: p, quiz: null, quizResult: null });
         } };
         this.toast = (value) => { clearTimeout(this.toastTimer); this.setState({ notice: value }); this.toastTimer = setTimeout(() => this.setState({ notice: '' }), 3800); };
+        this.loadRules = async () => { try {
+            const response = await fetch('/rules.json?v=ep01-17');
+            if (!response.ok)
+                throw new Error('Rules notes could not be loaded');
+            const rules = await response.json();
+            if (!Array.isArray(rules) || rules.length !== 17)
+                throw new Error('The Rules library is incomplete');
+            this.setState({ rules, rulesLoading: false, rulesError: '' });
+        }
+        catch (e) {
+            this.setState({ rulesLoading: false, rulesError: e.message });
+        } };
         this.refresh = async () => { try {
             const backup = readBackup(this.learner);
             if (backup) {
@@ -187,11 +200,11 @@ class App extends Component {
             this.toast(e.message);
         } };
         this.learner = readLearner();
-        this.state = { page: 'dashboard', selectedDay: 1, weekFilter: 'all', search: '', loading: true, lessons: [], summary: null, quiz: null, quizResult: null, answers: {}, currentQ: 0, remaining: 0, quizSubmitting: false, quizStarted: 0, simPrompt: 'Explain what an API is in one sentence.', simSystem: 'You are a concise and friendly teacher.', simMax: 256, simOutput: null, simLoading: false, mobileOpen: false, openNotesDay: 1, notice: '', showReset: false };
+        this.state = { page: 'dashboard', selectedDay: 1, weekFilter: 'all', search: '', loading: true, lessons: [], summary: null, quiz: null, quizResult: null, answers: {}, currentQ: 0, remaining: 0, quizSubmitting: false, quizStarted: 0, simPrompt: 'Explain what an API is in one sentence.', simSystem: 'You are a concise and friendly teacher.', simMax: 256, simOutput: null, simLoading: false, mobileOpen: false, openNotesDay: 1, rules: [], rulesLoading: true, rulesError: '', rulesSearch: '', rulesDecision: 'all', openRulesEpisode: 'EP01', notice: '', showReset: false };
         this.ticker = null;
         this.toastTimer = null;
     }
-    componentDidMount() { this.refresh(); this.ticker = setInterval(() => { if (this.state.quiz && !this.state.quizResult && !this.state.quizSubmitting) {
+    componentDidMount() { this.refresh(); this.loadRules(); this.ticker = setInterval(() => { if (this.state.quiz && !this.state.quizResult && !this.state.quizSubmitting) {
         if (this.state.remaining <= 1)
             this.submitQuiz(true);
         else
@@ -240,7 +253,7 @@ class App extends Component {
                         React.createElement("small", null, "Local progress profile")),
                     React.createElement(Icon, { name: "shield", size: 15 })))];
     }
-    renderHeader() { const names = { dashboard: ['Your learning dashboard', 'Your journey · Nov 1–21, 2026'], path: ['Your learning path', '21 focused sessions, one clear destination'], lesson: ['Lesson workspace', 'Read, practise, then prove you understand'], notes: ['Knowledge library', 'Every important concept, in one place'], assessments: ['Exam practice centre', 'Daily checks, weekly mocks and final assessment'], progress: ['Your progress report', 'Real evidence, not just a completion badge'], playground: ['No-key API playground', 'Experience request and response shapes without a paid API'], quiz: ['Assessment session', 'Focus. Reason. Review. Improve.'] }; const [name, desc] = names[this.state.page] || names.dashboard; return React.createElement("header", { className: "topbar" },
+    renderHeader() { const names = { dashboard: ['Your learning dashboard', 'Your journey · Nov 1–21, 2026'], path: ['Your learning path', '21 focused sessions, one clear destination'], lesson: ['Lesson workspace', 'Read, practise, then prove you understand'], notes: ['Knowledge library', 'Every important concept, in one place'], rules: ['Rules', 'EP01–EP17 · exam rules, decision patterns and thumb rules'], assessments: ['Exam practice centre', 'Daily checks, weekly mocks and final assessment'], progress: ['Your progress report', 'Real evidence, not just a completion badge'], playground: ['No-key API playground', 'Experience request and response shapes without a paid API'], quiz: ['Assessment session', 'Focus. Reason. Review. Improve.'] }; const [name, desc] = names[this.state.page] || names.dashboard; return React.createElement("header", { className: "topbar" },
         React.createElement("div", { className: "topbar-left" },
             React.createElement("button", { className: "mobile-toggle", "aria-label": this.state.mobileOpen ? 'Close menu' : 'Open menu', "aria-expanded": this.state.mobileOpen, "aria-controls": "app-navigation", onClick: () => this.setState(s => ({ mobileOpen: !s.mobileOpen })) },
                 React.createElement(Icon, { name: "menu" })),
@@ -571,6 +584,111 @@ class App extends Component {
                 }),
                 !matches.length && React.createElement("div", { className: "empty-state" }, "No notes match that search. Try a broader term.")));
     }
+    renderRules() {
+        const { rules, rulesLoading, rulesError, rulesSearch, rulesDecision, openRulesEpisode } = this.state;
+        const query = rulesSearch.trim().toLowerCase();
+        const matches = rules.filter(ep => (rulesDecision === 'all' || ep.decisionKey === rulesDecision) && (!query || [ep.episode, ep.title, ep.decision, ep.overview, ep.examTrap, ep.memoryLine, ...ep.thumbRules, ...ep.topics.flatMap(t => [t.heading, t.body])].join(' ').toLowerCase().includes(query)));
+        const filters = [['all', 'All episodes'], ['runs', 'What runs?'], ['call', 'How it calls'], ['see', 'What it sees & says'], ['production', 'Production']];
+        const decisions = [['01', 'What runs?', 'Workflows, agents and the application architecture.'], ['02', 'How does it call Claude?', 'API calls, streaming, models, tokens and batch.'], ['03', 'What does Claude see and say?', 'Context, prompts, tools and response shape.'], ['04', 'Will it survive production?', 'Reliability, debugging, lifecycle and security.']];
+        if (rulesLoading)
+            return React.createElement("div", { className: "page-content" },
+                React.createElement("div", { className: "loading-page" },
+                    React.createElement("div", { className: "loader" }),
+                    "Loading EP01\u2013EP17 rules..."));
+        if (rulesError)
+            return React.createElement("div", { className: "page-content" },
+                React.createElement("div", { className: "empty-state" },
+                    rulesError,
+                    ". Refresh the page to try again."));
+        return React.createElement("div", { className: "page-content rules-page" },
+            React.createElement("section", { className: "rules-hero" },
+                React.createElement("div", { className: "rules-hero-orbit" }),
+                React.createElement("div", { className: "rules-hero-kicker" },
+                    React.createElement(Icon, { name: "bookOpen", size: 15 }),
+                    " CCDV-F EXAM PLAYBOOK \u00B7 EP01\u2013EP17"),
+                React.createElement("h1", null,
+                    "Rules that make",
+                    React.createElement("br", null),
+                    React.createElement("em", null, "the answer clearer.")),
+                React.createElement("p", null, "One separate library for all 17 episodes. Review the idea, learn the thumb rules, then spot the exam trap before it catches you."),
+                React.createElement("div", { className: "rules-hero-meta" },
+                    React.createElement("span", null,
+                        React.createElement("strong", null, "17"),
+                        " episodes"),
+                    React.createElement("span", null,
+                        React.createElement("strong", null, rules.reduce((n, ep) => n + ep.topics.length, 0)),
+                        " study sections"),
+                    React.createElement("span", null,
+                        React.createElement("strong", null, rules.reduce((n, ep) => n + ep.thumbRules.length, 0)),
+                        " thumb rules"))),
+            React.createElement("section", { className: "rules-decision-section" },
+                React.createElement("div", { className: "rules-section-label" }, "THE FOUR DECISIONS"),
+                React.createElement("div", { className: "rules-decision-grid" }, decisions.map(([n, title, desc]) => React.createElement("div", { className: "rules-decision-card", key: n },
+                    React.createElement("span", null, n),
+                    React.createElement("strong", null, title),
+                    React.createElement("p", null, desc))))),
+            React.createElement("section", { className: "rules-master-rules" },
+                React.createElement("div", { className: "rules-master-card" },
+                    React.createElement("span", null, "RULE 01 \u00B7 CONSTRAINT"),
+                    React.createElement("strong", null, "Match the mechanism to the named constraint."),
+                    React.createElement("p", null, "Do not choose a generic knob when a specific mechanism solves the requirement.")),
+                React.createElement("div", { className: "rules-master-card" },
+                    React.createElement("span", null, "RULE 02 \u00B7 GUARANTEE"),
+                    React.createElement("strong", null, "A polite request is not a control."),
+                    React.createElement("p", null, "When the stem says must, never, always or cannot, choose an enforceable mechanism."))),
+            React.createElement("div", { className: "rules-library-heading" },
+                React.createElement("div", null,
+                    React.createElement("div", { className: "rules-section-label" }, "EPISODE-BY-EPISODE NOTES"),
+                    React.createElement("h2", null, "All 17 episodes"),
+                    React.createElement("p", null, "Search a concept or filter by the decision it belongs to.")),
+                React.createElement("span", { className: "rules-count" },
+                    matches.length,
+                    " / 17 shown")),
+            React.createElement("div", { className: "rules-toolbar" },
+                React.createElement("div", { className: "search-box rules-search" },
+                    React.createElement(Icon, { name: "search", size: 18 }),
+                    React.createElement("input", { "aria-label": "Search Rules episodes", placeholder: "Search batch, MCP, context, prompt injection...", value: rulesSearch, onChange: e => this.setState({ rulesSearch: e.target.value }) }),
+                    rulesSearch && React.createElement("button", { type: "button", "aria-label": "Clear Rules search", onClick: () => this.setState({ rulesSearch: '' }) }, "\u00D7")),
+                React.createElement("div", { className: "rules-filters" }, filters.map(([key, label]) => React.createElement("button", { type: "button", key: key, className: rulesDecision === key ? 'selected' : '', onClick: () => this.setState({ rulesDecision: key }) }, label)))),
+            React.createElement("div", { className: "rules-episode-list" },
+                matches.map(ep => { const expanded = openRulesEpisode === ep.episode; return React.createElement("article", { className: 'rules-episode ' + (expanded ? 'expanded' : ''), key: ep.episode },
+                    React.createElement("button", { type: "button", className: "rules-episode-toggle", "aria-expanded": expanded, onClick: () => this.setState({ openRulesEpisode: expanded && !query ? '' : ep.episode }) },
+                        React.createElement("span", { className: "rules-episode-number" }, ep.episode),
+                        React.createElement("span", { className: "rules-episode-title" },
+                            React.createElement("strong", null, ep.title),
+                            React.createElement("small", null,
+                                ep.timeRange,
+                                " ",
+                                React.createElement("i", null, "\u00B7"),
+                                " ",
+                                ep.decision)),
+                        React.createElement("span", { className: "rules-episode-chevron" },
+                            React.createElement(Icon, { name: expanded ? 'down' : 'chevron', size: 18 }))),
+                    expanded && React.createElement("div", { className: "rules-episode-body" },
+                        React.createElement("p", { className: "rules-overview" }, ep.overview),
+                        React.createElement("div", { className: "rules-topic-grid" }, ep.topics.map((topic, i) => React.createElement("section", { className: "rules-topic", key: i },
+                            React.createElement("span", null,
+                                "0",
+                                i + 1),
+                            React.createElement("div", null,
+                                React.createElement("h3", null, topic.heading),
+                                React.createElement("p", null, topic.body))))),
+                        React.createElement("div", { className: "rules-thumb-panel" },
+                            React.createElement("div", { className: "rules-panel-heading" },
+                                React.createElement(Icon, { name: "target", size: 17 }),
+                                " THUMB RULES TO REMEMBER"),
+                            React.createElement("ul", null, ep.thumbRules.map((rule, i) => React.createElement("li", { key: i }, rule)))),
+                        React.createElement("div", { className: "rules-exam-trap" },
+                            React.createElement("div", null,
+                                React.createElement(Icon, { name: "info", size: 16 }),
+                                " EXAM TRAP"),
+                            React.createElement("p", null, ep.examTrap)),
+                        React.createElement("div", { className: "rules-memory-line" },
+                            React.createElement("span", null, "ONE-LINE MEMORY"),
+                            React.createElement("strong", null, ep.memoryLine)))); }),
+                matches.length === 0 && React.createElement("div", { className: "empty-state" }, "No episode notes match that search. Try another term or select All episodes.")),
+            React.createElement("div", { className: "rules-footer-note" }, "These notes are organized from the EP01\u2013EP17 transcript and episode summaries you supplied. Keep the original documentation as the authority for version-specific API details."));
+    }
     renderAssessments() {
         const s = this.state.summary;
         const weekly = [1, 2, 3].map(w => ({ id: 'week' + w, title: 'Week ' + w + ' mock exam', sub: ['API foundations, prompting & tools', 'MCP, agents, evaluation & safety', 'Production, Skills & system design'][w - 1], date: [7, 14, 21][w - 1], score: s.weekly[w - 1].score, minutes: 30, questions: 12 }));
@@ -855,7 +973,7 @@ class App extends Component {
             this.renderHeader(),
             loading ? React.createElement("div", { className: "loading-page" },
                 React.createElement("div", { className: "loader" }),
-                "Loading your academy...") : this.state.summary && this.state.lessons.length ? (page === 'dashboard' ? this.renderDashboard() : page === 'path' ? this.renderPath() : page === 'lesson' ? this.renderLesson() : page === 'notes' ? this.renderNotes() : page === 'assessments' ? this.renderAssessments() : page === 'progress' ? this.renderProgress() : page === 'playground' ? this.renderPlayground() : page === 'quiz' ? this.renderQuiz() : this.renderDashboard()) : React.createElement("div", { className: "loading-page" }, "Unable to load the curriculum. Check that the Node.js server is running.")),
+                "Loading your academy...") : this.state.summary && this.state.lessons.length ? (page === 'dashboard' ? this.renderDashboard() : page === 'path' ? this.renderPath() : page === 'lesson' ? this.renderLesson() : page === 'notes' ? this.renderNotes() : page === 'rules' ? this.renderRules() : page === 'assessments' ? this.renderAssessments() : page === 'progress' ? this.renderProgress() : page === 'playground' ? this.renderPlayground() : page === 'quiz' ? this.renderQuiz() : this.renderDashboard()) : React.createElement("div", { className: "loading-page" }, "Unable to load the curriculum. Check that the Node.js server is running.")),
         notice && React.createElement("div", { className: "toast" },
             React.createElement(Icon, { name: "info", size: 17 }),
             notice)); }
